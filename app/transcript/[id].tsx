@@ -1,0 +1,397 @@
+import { ThemedText } from '@/components/themed-text';
+import { ThemedView } from '@/components/themed-view';
+import { useTranscripts } from '@/contexts/TranscriptsContext';
+import { notesService } from '@/services/notesService';
+import { transcriptsService } from '@/services/transcriptsService';
+import { Transcript } from '@/types';
+import { usePreventRemove } from '@react-navigation/native';
+import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
+import React, { useEffect, useRef, useState } from 'react';
+import {
+  ActivityIndicator,
+  Alert,
+  ScrollView,
+  StyleSheet,
+  TextInput,
+  TouchableOpacity,
+  View
+} from 'react-native';
+
+export default function TranscriptDetailScreen() {
+  const { id } = useLocalSearchParams<{ id: string }>();
+  const router = useRouter();
+  const navigation = useNavigation();
+  const { updateTranscript } = useTranscripts();
+  const [transcript, setTranscript] = useState<Transcript | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [editedTitle, setEditedTitle] = useState('');
+  const [editedContent, setEditedContent] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [hasNote, setHasNote] = useState(false);
+  const [noteId, setNoteId] = useState<string | null>(null);
+
+  const titleInputRef = useRef<TextInput>(null);
+  const contentInputRef = useRef<TextInput>(null);
+
+  useEffect(() => {
+    if (id) {
+      loadTranscript();
+    }
+  }, [id]);
+
+  const loadTranscript = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      const transcriptData = await transcriptsService.getTranscript(id);
+      setTranscript(transcriptData);
+      setEditedTitle(transcriptData.title);
+      setEditedContent(transcriptData.content);
+
+      // Check if transcript has note_id
+      if (transcriptData.note_id) {
+        setHasNote(true);
+        setNoteId(transcriptData.note_id);
+      } else {
+        // Fallback: Check if note exists for this transcript
+        const note = await notesService.getNoteByTranscriptId(transcriptData.id);
+        if (note) {
+          setHasNote(true);
+          setNoteId(note.id);
+        } else {
+          setHasNote(false);
+          setNoteId(null);
+        }
+      }
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to load transcript';
+      setError(errorMessage);
+      console.error('Failed to load transcript:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleTitleChange = (text: string) => {
+    setEditedTitle(text);
+    setHasUnsavedChanges(true);
+  };
+
+  const handleContentChange = (text: string) => {
+    setEditedContent(text);
+    setHasUnsavedChanges(true);
+  };
+
+  const saveChanges = async () => {
+    if (!transcript || !hasUnsavedChanges) return;
+
+    try {
+      setIsSaving(true);
+      const updatedTranscript = await updateTranscript(transcript.id, {
+        title: editedTitle,
+        content: editedContent,
+      });
+
+      setTranscript(updatedTranscript);
+      setHasUnsavedChanges(false);
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to update transcript';
+      Alert.alert('Error', errorMessage);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleGenerateNote = async () => {
+    if (!transcript) return;
+
+    try {
+      Alert.alert(
+        'Generate Note',
+        'This will generate a note from your transcript using AI. Continue?',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Generate',
+            style: 'default',
+            onPress: async () => {
+              try {
+                const result = await transcriptsService.generateNote(transcript.id);
+                // Auto-navigate to the new note screen
+                router.push(`/note/${result.id}` as any);
+              } catch (err) {
+                const errorMessage = err instanceof Error ? err.message : 'Failed to generate note';
+                Alert.alert('Error', errorMessage);
+              }
+            },
+          },
+        ]
+      );
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to generate note';
+      Alert.alert('Error', errorMessage);
+    }
+  };
+
+  const handleViewNote = () => {
+    if (noteId) {
+      router.push(`/note/${noteId}` as any);
+    }
+  };
+
+  // Handle navigation away with unsaved changes using usePreventRemove hook
+  usePreventRemove(hasUnsavedChanges, () => {
+    if (!hasUnsavedChanges) {
+      return;
+    }
+
+    // Show confirmation dialog
+    Alert.alert(
+      'Unsaved Changes',
+      'You have unsaved changes. Do you want to discard them?',
+      [
+        {
+          text: "Don't leave",
+          style: 'cancel',
+          onPress: () => {
+            // Navigation is automatically prevented by usePreventRemove
+            // User stays on the transcript screen
+          },
+        },
+        {
+          text: 'Discard',
+          style: 'destructive',
+          onPress: () => {
+            // Discard changes and navigate back immediately
+            setHasUnsavedChanges(false);
+            // Use setTimeout to ensure state update happens before navigation
+            setTimeout(() => {
+              router.back();
+            }, 0);
+          },
+        },
+      ]
+    );
+  });
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  };
+
+  if (isLoading) {
+    return (
+      <ThemedView style={styles.container}>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" />
+          <ThemedText type="default" style={styles.loadingText}>
+            Loading transcript...
+          </ThemedText>
+        </View>
+      </ThemedView>
+    );
+  }
+
+  if (error || !transcript) {
+    return (
+      <ThemedView style={styles.container}>
+        <View style={styles.errorContainer}>
+          <ThemedText type="title" style={styles.errorTitle}>
+            {error || 'Transcript not found'}
+          </ThemedText>
+          <ThemedText type="default" style={styles.errorText}>
+            {error
+              ? 'There was a problem loading this transcript.'
+              : 'The transcript you are looking for does not exist.'
+            }
+          </ThemedText>
+        </View>
+      </ThemedView>
+    );
+  }
+
+  return (
+    <ThemedView style={styles.container}>
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.header}>
+          <TextInput
+            ref={titleInputRef}
+            style={styles.titleInput}
+            value={editedTitle}
+            onChangeText={handleTitleChange}
+            placeholder="Enter transcript title"
+            multiline
+            editable={!isSaving}
+          />
+          <ThemedText type="default" style={styles.date}>
+            Created {formatDate(transcript.created_at)}
+            {hasUnsavedChanges && ' • Unsaved changes'}
+            {isSaving && ' • Saving...'}
+          </ThemedText>
+        </View>
+
+        <View style={styles.contentSection}>
+          <ThemedText type="subtitle" style={styles.sectionTitle}>
+            Content
+          </ThemedText>
+          <TextInput
+            ref={contentInputRef}
+            style={styles.contentInput}
+            value={editedContent}
+            onChangeText={handleContentChange}
+            placeholder="Enter transcript content"
+            multiline
+            textAlignVertical="top"
+            numberOfLines={10}
+            editable={!isSaving}
+          />
+        </View>
+
+        <View style={styles.actions}>
+          {hasUnsavedChanges && (
+            <TouchableOpacity
+              style={[styles.actionButton, styles.saveButton]}
+              onPress={saveChanges}
+              disabled={isSaving}
+            >
+              {isSaving ? (
+                <ActivityIndicator size="small" color="white" />
+              ) : (
+                <ThemedText type="defaultSemiBold" style={styles.actionButtonText}>
+                  Save Changes
+                </ThemedText>
+              )}
+            </TouchableOpacity>
+          )}
+          {hasNote && (
+            <TouchableOpacity
+              style={[styles.actionButton, styles.viewNoteButton]}
+              onPress={handleViewNote}
+              disabled={isSaving}
+            >
+              <ThemedText type="defaultSemiBold" style={styles.actionButtonText}>
+                View Note
+              </ThemedText>
+            </TouchableOpacity>
+          )}
+          <TouchableOpacity
+            style={[styles.actionButton, styles.generateNoteButton]}
+            onPress={handleGenerateNote}
+            disabled={isSaving}
+          >
+            <ThemedText type="defaultSemiBold" style={styles.actionButtonText}>
+              Generate Note
+            </ThemedText>
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
+    </ThemedView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    padding: 16,
+    paddingBottom: 32,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 16,
+  },
+  loadingText: {
+    opacity: 0.7,
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 32,
+  },
+  errorTitle: {
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  errorText: {
+    textAlign: 'center',
+    opacity: 0.7,
+  },
+  header: {
+    marginBottom: 24,
+  },
+  titleInput: {
+    fontSize: 24,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 8,
+    padding: 12,
+    backgroundColor: 'white',
+  },
+  date: {
+    fontSize: 14,
+    opacity: 0.7,
+  },
+  contentSection: {
+    marginBottom: 24,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    marginBottom: 12,
+    opacity: 0.8,
+  },
+  contentInput: {
+    fontSize: 16,
+    lineHeight: 24,
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 8,
+    padding: 12,
+    backgroundColor: 'white',
+    minHeight: 200,
+    textAlignVertical: 'top',
+  },
+  actions: {
+    marginTop: 24,
+  },
+  actionButton: {
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  actionButtonText: {
+    color: 'white',
+    fontSize: 16,
+  },
+  saveButton: {
+    backgroundColor: '#34C759',
+  },
+  viewNoteButton: {
+    backgroundColor: '#FF9500',
+  },
+  generateNoteButton: {
+    backgroundColor: '#5856D6',
+  },
+});
