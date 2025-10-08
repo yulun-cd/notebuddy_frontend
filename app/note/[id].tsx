@@ -5,13 +5,13 @@ import { usePreventRemove } from '@react-navigation/native';
 import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import {
-    ActivityIndicator,
-    Alert,
-    ScrollView,
-    StyleSheet,
-    TextInput,
-    TouchableOpacity,
-    View
+  ActivityIndicator,
+  Alert,
+  ScrollView,
+  StyleSheet,
+  TextInput,
+  TouchableOpacity,
+  View
 } from 'react-native';
 
 export default function NoteDetailScreen() {
@@ -178,6 +178,7 @@ export default function NoteDetailScreen() {
           />
           <ThemedText type="default" style={styles.date}>
             Created {formatDate(currentNote.created_at)}
+            {'\n'}
             {hasUnsavedChanges && ' • Unsaved changes'}
             {isSaving && ' • Saving...'}
           </ThemedText>
@@ -196,29 +197,30 @@ export default function NoteDetailScreen() {
             placeholder="Enter note content"
             multiline
             textAlignVertical="top"
-            numberOfLines={10}
             editable={!isSaving}
           />
         </View>
-
-        <View style={styles.actions}>
-          {hasUnsavedChanges && (
-            <TouchableOpacity
-              style={[styles.actionButton, styles.saveButton]}
-              onPress={saveChanges}
-              disabled={isSaving}
-            >
-              {isSaving ? (
-                <ActivityIndicator size="small" color="white" />
-              ) : (
-                <ThemedText type="defaultSemiBold" style={styles.actionButtonText}>
-                  Save Changes
-                </ThemedText>
-              )}
-            </TouchableOpacity>
-          )}
-        </View>
       </ScrollView>
+
+      <View style={styles.bottomActions}>
+          <TouchableOpacity
+            style={[
+              styles.actionButton,
+              styles.saveButton,
+              (isSaving||!hasUnsavedChanges) && styles.disabledButton
+            ]}
+            onPress={saveChanges}
+            disabled={(isSaving||!hasUnsavedChanges)}
+          >
+            {isSaving ? (
+              <ActivityIndicator size="small" color="white" />
+            ) : (
+              <ThemedText type="defaultSemiBold" style={styles.actionButtonText}>
+                Save Changes
+              </ThemedText>
+            )}
+          </TouchableOpacity>
+      </View>
     </ThemedView>
   );
 }
@@ -289,18 +291,31 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 12,
     backgroundColor: 'white',
-    minHeight: 200,
+    flex: 1,
     textAlignVertical: 'top',
   },
   actions: {
     marginTop: 24,
   },
+  bottomActions: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 16,
+    paddingBottom: 32,
+    backgroundColor: 'white',
+    borderTopWidth: 1,
+    borderTopColor: '#e0e0e0',
+    gap: 12,
+  },
   actionButton: {
     paddingVertical: 12,
-    paddingHorizontal: 20,
+    paddingHorizontal: 0,
     borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
+    flex: 1,
+    minHeight: 44,
   },
   actionButtonText: {
     color: 'white',
@@ -308,5 +323,9 @@ const styles = StyleSheet.create({
   },
   saveButton: {
     backgroundColor: '#34C759',
+  },
+  disabledButton: {
+    backgroundColor: '#C7C7CC',
+    opacity: 0.6,
   },
 });

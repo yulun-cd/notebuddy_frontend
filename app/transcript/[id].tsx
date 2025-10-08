@@ -238,6 +238,7 @@ export default function TranscriptDetailScreen() {
           />
           <ThemedText type="default" style={styles.date}>
             Created {formatDate(transcript.created_at)}
+            {'\n'}
             {hasUnsavedChanges && ' • Unsaved changes'}
             {isSaving && ' • Saving...'}
           </ThemedText>
@@ -255,49 +256,56 @@ export default function TranscriptDetailScreen() {
             placeholder="Enter transcript content"
             multiline
             textAlignVertical="top"
-            numberOfLines={10}
             editable={!isSaving}
           />
         </View>
+      </ScrollView>
 
-        <View style={styles.actions}>
-          {hasUnsavedChanges && (
-            <TouchableOpacity
-              style={[styles.actionButton, styles.saveButton]}
-              onPress={saveChanges}
-              disabled={isSaving}
-            >
-              {isSaving ? (
-                <ActivityIndicator size="small" color="white" />
-              ) : (
-                <ThemedText type="defaultSemiBold" style={styles.actionButtonText}>
-                  Save Changes
-                </ThemedText>
-              )}
-            </TouchableOpacity>
-          )}
-          {hasNote && (
-            <TouchableOpacity
-              style={[styles.actionButton, styles.viewNoteButton]}
-              onPress={handleViewNote}
-              disabled={isSaving}
-            >
-              <ThemedText type="defaultSemiBold" style={styles.actionButtonText}>
-                View Note
-              </ThemedText>
-            </TouchableOpacity>
-          )}
+      <View style={styles.bottomActions}>
           <TouchableOpacity
-            style={[styles.actionButton, styles.generateNoteButton]}
-            onPress={handleGenerateNote}
-            disabled={isSaving}
+            style={[
+              styles.actionButton,
+              styles.saveButton,
+              (isSaving||!hasUnsavedChanges) && styles.disabledButton
+            ]}
+            onPress={saveChanges}
+            disabled={isSaving||!hasUnsavedChanges}
+          >
+            {isSaving ? (
+              <ActivityIndicator size="small" color="white" />
+            ) : (
+              <ThemedText type="defaultSemiBold" style={styles.actionButtonText}>
+                Save Changes
+              </ThemedText>
+            )}
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[
+              styles.actionButton,
+              styles.viewNoteButton,
+              (isSaving||!hasNote) && styles.disabledButton
+            ]}
+            onPress={handleViewNote}
+            disabled={(isSaving||!hasNote)}
           >
             <ThemedText type="defaultSemiBold" style={styles.actionButtonText}>
-              Generate Note
+              View Note
             </ThemedText>
           </TouchableOpacity>
-        </View>
-      </ScrollView>
+        <TouchableOpacity
+          style={[
+            styles.actionButton,
+            styles.generateNoteButton,
+            isSaving && styles.disabledButton
+          ]}
+          onPress={handleGenerateNote}
+          disabled={isSaving}
+        >
+          <ThemedText type="defaultSemiBold" style={styles.actionButtonText}>
+            Generate Note
+          </ThemedText>
+        </TouchableOpacity>
+      </View>
     </ThemedView>
   );
 }
@@ -368,18 +376,31 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 12,
     backgroundColor: 'white',
-    minHeight: 200,
+    flex: 1,
     textAlignVertical: 'top',
   },
   actions: {
     marginTop: 24,
   },
+  bottomActions: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 16,
+    paddingBottom: 32,
+    backgroundColor: 'white',
+    borderTopWidth: 1,
+    borderTopColor: '#e0e0e0',
+    gap: 12,
+  },
   actionButton: {
     paddingVertical: 12,
-    paddingHorizontal: 20,
+    paddingHorizontal: 0,
     borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
+    flex: 1,
+    minHeight: 44,
   },
   actionButtonText: {
     color: 'white',
@@ -393,5 +414,9 @@ const styles = StyleSheet.create({
   },
   generateNoteButton: {
     backgroundColor: '#5856D6',
+  },
+  disabledButton: {
+    backgroundColor: '#C7C7CC',
+    opacity: 0.6,
   },
 });
