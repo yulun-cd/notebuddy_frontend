@@ -69,6 +69,40 @@ export class NotesService {
 
     return null;
   }
+
+  async generateQuestions(noteId: string): Promise<string[]> {
+    const response = await apiService.post<string[]>(`/notes/${noteId}/generate-questions`);
+
+    if (response.status >= 200 && response.status < 300) {
+      // Handle different response formats
+      let questions: string[];
+
+      if (response.data.data) {
+        // If response has data property
+        questions = response.data.data as string[];
+      } else {
+        // If response is directly the questions array
+        questions = response.data as string[];
+      }
+
+      return questions;
+    }
+
+    throw new Error(response.data.error || 'Failed to generate questions');
+  }
+
+  async updateWithAnswer(noteId: string, question: string, answer: string): Promise<void> {
+    const response = await apiService.post(`/notes/${noteId}/update-with-answer`, {
+      question,
+      answer,
+    });
+
+    if (response.status >= 200 && response.status < 300) {
+      return;
+    }
+
+    throw new Error(response.data.error || 'Failed to update note with answer');
+  }
 }
 
 export const notesService = new NotesService();

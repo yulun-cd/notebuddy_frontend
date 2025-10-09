@@ -1,7 +1,8 @@
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { useNotes } from '@/contexts/NotesContext';
-import { usePreventRemove } from '@react-navigation/native';
+import { notesService } from '@/services/notesService';
+import { useFocusEffect, usePreventRemove } from '@react-navigation/native';
 import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import {
@@ -23,6 +24,10 @@ export default function NoteDetailScreen() {
   const [editedContent, setEditedContent] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [questions, setQuestions] = useState<string[]>([]);
+  const [isGeneratingQuestions, setIsGeneratingQuestions] = useState(false);
+  const [questionsError, setQuestionsError] = useState<string | null>(null);
+  const scrollViewRef = useRef<ScrollView>(null);
 
   const titleInputRef = useRef<TextInput>(null);
   const contentInputRef = useRef<TextInput>(null);
@@ -32,6 +37,15 @@ export default function NoteDetailScreen() {
       loadNote(id);
     }
   }, [id]);
+
+  // Refresh data when screen comes into focus (e.g., when returning from answering screen)
+  useFocusEffect(
+    React.useCallback(() => {
+      if (id) {
+        loadNote(id);
+      }
+    }, [id])
+  );
 
   useEffect(() => {
     if (currentNote) {
@@ -78,6 +92,34 @@ export default function NoteDetailScreen() {
   const handleContentBlur = () => {
     // No auto-save - changes remain unsaved until manual save
     // hasUnsavedChanges remains true until user explicitly saves
+  };
+
+  const generateQuestions = async () => {
+    if (!currentNote) return;
+
+    try {
+      setIsGeneratingQuestions(true);
+      setQuestionsError(null);
+      const generatedQuestions = await notesService.generateQuestions(currentNote.id);
+      setQuestions(generatedQuestions);
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to generate questions';
+      setQuestionsError(errorMessage);
+      Alert.alert('Error', errorMessage);
+    } finally {
+      setIsGeneratingQuestions(false);
+      Alert.alert('Questions Generated', 'New questions have been generated. Scroll to the bottom to view them.', );
+    }
+  };
+
+  const handleQuestionPress = (question: string, index: number) => {
+    if (!currentNote) return;
+
+    // Navigate to the answering screen with the question and note_id
+    router.push({
+      pathname: `/answer/${currentNote.id}`,
+      params: { question }
+    } as any);
   };
 
   // Handle navigation away with unsaved changes using usePreventRemove hook
@@ -200,6 +242,32 @@ export default function NoteDetailScreen() {
             editable={!isSaving}
           />
         </View>
+
+        {questions.length > 0 && (
+          <View style={styles.questionsSection}>
+            <ThemedText type="subtitle" style={styles.sectionTitle}>
+              Generated Questions
+            </ThemedText>
+            {questionsError && (
+              <ThemedText type="default" style={styles.errorText}>
+                {questionsError}
+              </ThemedText>
+            )}
+            <View style={styles.questionsList}>
+              {questions.map((question, index) => (
+                <TouchableOpacity
+                  key={index}
+                  style={styles.questionItem}
+                  onPress={() => handleQuestionPress(question, index)}
+                >
+                  <ThemedText type="default" style={styles.questionText}>
+                    {question}
+                  </ThemedText>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+        )}
       </ScrollView>
 
       <View style={styles.bottomActions}>
@@ -217,6 +285,23 @@ export default function NoteDetailScreen() {
             ) : (
               <ThemedText type="defaultSemiBold" style={styles.actionButtonText}>
                 Save Changes
+              </ThemedText>
+            )}
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[
+              styles.actionButton,
+              styles.generateQuestionsButton,
+              (isSaving || isGeneratingQuestions) && styles.disabledButton
+            ]}
+            onPress={generateQuestions}
+            disabled={isSaving || isGeneratingQuestions}
+          >
+            {isGeneratingQuestions ? (
+              <ActivityIndicator size="small" color="white" />
+            ) : (
+              <ThemedText type="defaultSemiBold" style={styles.actionButtonText}>
+                Generate Questions
               </ThemedText>
             )}
           </TouchableOpacity>
@@ -327,5 +412,25 @@ const styles = StyleSheet.create({
   disabledButton: {
     backgroundColor: '#C7C7CC',
     opacity: 0.6,
+  },
+  generateQuestionsButton: {
+    backgroundColor: '#5856D6',
+  },
+  questionsSection: {
+    marginBottom: 24,
+  },
+  questionsList: {
+    gap: 8,
+  },
+  questionItem: {
+    backgroundColor: 'rgba(88, 86, 214, 0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(88, 86, 214, 0.2)',
+    borderRadius: 8,
+    padding: 12,
+  },
+  questionText: {
+    fontSize: 16,
+    lineHeight: 22,
   },
 });
