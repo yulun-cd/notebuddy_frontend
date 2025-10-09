@@ -1,17 +1,18 @@
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { VoiceInput } from '@/components/VoiceInput';
 import { useTranscripts } from '@/contexts/TranscriptsContext';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
-    Alert,
-    KeyboardAvoidingView,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    TextInput,
-    TouchableOpacity,
-    View,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 
 export default function CreateTranscriptScreen() {
@@ -108,16 +109,10 @@ export default function CreateTranscriptScreen() {
               <ThemedText type="defaultSemiBold" style={styles.label}>
                 Content
               </ThemedText>
-              <TextInput
-                style={[styles.textInput, styles.textArea]}
+              <VoiceInput
                 value={content}
                 onChangeText={setContent}
                 placeholder="Enter transcript content..."
-                placeholderTextColor="#999"
-                multiline
-                textAlignVertical="top"
-                numberOfLines={10}
-                maxLength={5000}
               />
               <ThemedText type="default" style={styles.charCount}>
                 {content.length}/5000

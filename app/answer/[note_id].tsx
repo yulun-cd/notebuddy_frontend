@@ -1,16 +1,16 @@
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { VoiceInput } from '@/components/VoiceInput';
 import { notesService } from '@/services/notesService';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
-    ActivityIndicator,
-    Alert,
-    ScrollView,
-    StyleSheet,
-    TextInput,
-    TouchableOpacity,
-    View
+  ActivityIndicator,
+  Alert,
+  ScrollView,
+  StyleSheet,
+  TouchableOpacity,
+  View
 } from 'react-native';
 
 export default function AnswerScreen() {
@@ -69,14 +69,10 @@ export default function AnswerScreen() {
           <ThemedText type="subtitle" style={styles.sectionTitle}>
             Your Answer
           </ThemedText>
-          <TextInput
-            style={styles.answerInput}
+          <VoiceInput
             value={answer}
             onChangeText={setAnswer}
             placeholder="Enter your answer here..."
-            multiline
-            textAlignVertical="top"
-            editable={!isSubmitting}
           />
         </View>
       </ScrollView>
