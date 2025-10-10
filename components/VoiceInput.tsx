@@ -3,12 +3,12 @@ import { ThemedView } from '@/components/themed-view';
 import { useSpeechRecognition } from '@/hooks/useSpeechRecognition';
 import React from 'react';
 import {
-    ActivityIndicator,
-    Alert,
-    StyleSheet,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  StyleSheet,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 
 interface VoiceInputProps {
@@ -35,14 +35,17 @@ export const VoiceInput: React.FC<VoiceInputProps> = ({
     setTranscribedText,
   } = useSpeechRecognition();
 
-  const isVoiceMode = !value && !transcribedText;
+  const [mode, setMode] = React.useState<'voice' | 'text'>('voice');
+  const isVoiceMode = mode === 'voice';
 
   const handleToggleMode = () => {
     if (isVoiceMode) {
       // Switching to text mode
+      setMode('text');
       onModeChange?.(false);
     } else {
       // Switching to voice mode
+      setMode('voice');
       reset();
       onChangeText('');
       onModeChange?.(true);

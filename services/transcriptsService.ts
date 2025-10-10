@@ -43,8 +43,8 @@ export class TranscriptsService {
       }
     }
 
-    // Fetch from API
-    const response = await apiService.get<PaginatedResponse<Transcript>>('/transcripts/');
+    // Fetch from API with include_note parameter
+    const response = await apiService.get<PaginatedResponse<Transcript>>('/transcripts/?include_note=true');
 
     if (response.status >= 200 && response.status < 300) {
       // Handle different response formats

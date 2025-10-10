@@ -3,13 +3,15 @@ import { ThemedView } from '@/components/themed-view';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTranscripts } from '@/contexts/TranscriptsContext';
 import { Transcript } from '@/types';
+import { AntDesign } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
 import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
-  FlatList,
   RefreshControl,
+  SectionList,
   StyleSheet,
   TouchableOpacity,
   View
@@ -20,6 +22,23 @@ export default function TranscriptsScreen() {
   const { transcripts, isLoading, error, refreshTranscripts, deleteTranscript } = useTranscripts();
   const { isAuthenticated } = useAuth();
   const [refreshing, setRefreshing] = useState(false);
+  const [lastRefreshTime, setLastRefreshTime] = useState(0);
+
+  // Debounced refresh when screen comes into focus
+  useFocusEffect(
+    React.useCallback(() => {
+      const now = Date.now();
+      const timeSinceLastRefresh = now - lastRefreshTime;
+
+      // Only refresh if it's been more than 2 seconds since last refresh
+      if (timeSinceLastRefresh > 2000) {
+        if (isAuthenticated) {
+          refreshTranscripts(false); // Don't use cache to get fresh data
+        }
+        setLastRefreshTime(now);
+      }
+    }, [isAuthenticated, lastRefreshTime, refreshTranscripts])
+  );
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -36,46 +55,156 @@ export default function TranscriptsScreen() {
         {
           text: '删除',
           style: 'destructive',
-          onPress: () => deleteTranscript(transcript.id),
+          onPress: async () => {
+            await deleteTranscript(transcript.id);
+            // Trigger refresh after deletion to update the list
+            refreshTranscripts(false);
+          },
         },
       ]
     );
   };
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toISOString().split('T')[0]; // YYYY-MM-DD format
+  const getMostRecentTimestamp = (transcript: Transcript) => {
+    const timestamps = [
+      transcript.created_at,
+      transcript.updated_at,
+      ...(transcript.note ? [transcript.note.created_at, transcript.note.updated_at] : [])
+    ];
+    return new Date(Math.max(...timestamps.map(ts => new Date(ts).getTime())));
   };
 
-  const renderTranscriptItem = ({ item }: { item: Transcript }) => (
-    <View style={styles.transcriptItem}>
-      <TouchableOpacity
-        style={styles.transcriptContent}
-        onPress={() => router.push(`/transcript/${item.id}`)}
-        onLongPress={() => handleDeleteTranscript(item)}
-      >
-        <ThemedText type="defaultSemiBold" style={styles.transcriptTitle}>
-          {item.title}
-        </ThemedText>
-        <ThemedText type="default" style={styles.transcriptDate}>
-          Created {formatDate(item.created_at)}
-        </ThemedText>
-        <ThemedText
-          type="default"
-          style={styles.transcriptPreview}
-          numberOfLines={2}
+  const formatDateTime = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const isToday = date.toDateString() === now.toDateString();
+
+    if (isToday) {
+      // Show time for today's items
+      return date.toLocaleTimeString('zh-CN', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+      });
+    } else {
+      // Show date for older items
+      return date.toLocaleDateString('zh-CN', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+      });
+    }
+  };
+
+  // Group transcripts by time period
+  const groupedTranscripts = useMemo(() => {
+    if (!transcripts.length) return [];
+
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const monthAgo = new Date(today.getFullYear(), today.getMonth(), 1);
+
+    // Sort by most recent first
+    const sorted = [...transcripts].sort((a, b) =>
+      new Date(getMostRecentTimestamp(b)).getTime() -
+      new Date(getMostRecentTimestamp(a)).getTime()
+    );
+
+    const groups = {
+      today: [] as Transcript[],
+      thisWeek: [] as Transcript[],
+      thisMonth: [] as Transcript[],
+      older: [] as Transcript[]
+    };
+
+    sorted.forEach(transcript => {
+      const timestamp = getMostRecentTimestamp(transcript);
+      const date = new Date(timestamp);
+
+      if (date >= today) {
+        groups.today.push(transcript);
+      } else if (date >= weekAgo) {
+        groups.thisWeek.push(transcript);
+      } else if (date >= monthAgo) {
+        groups.thisMonth.push(transcript);
+      } else {
+        groups.older.push(transcript);
+      }
+    });
+
+    // Convert to SectionList format, filtering empty sections
+    const sections = [];
+    if (groups.today.length > 0) {
+      sections.push({ title: '今天', data: groups.today });
+    }
+    if (groups.thisWeek.length > 0) {
+      sections.push({ title: '本周', data: groups.thisWeek });
+    }
+    if (groups.thisMonth.length > 0) {
+      sections.push({ title: '本月', data: groups.thisMonth });
+    }
+    if (groups.older.length > 0) {
+      sections.push({ title: '更早', data: groups.older });
+    }
+
+    return sections;
+  }, [transcripts]);
+
+  const renderTranscriptItem = ({ item }: { item: Transcript }) => {
+    const displayTitle = item.note?.title || item.title;
+    const hasNote = Boolean(item.note);
+    const mostRecentTimestamp = getMostRecentTimestamp(item);
+
+    const handleItemPress = () => {
+      if (hasNote && item.note) {
+        // Navigate to note screen if transcript has a note
+        router.push(`/note/${item.note.id}`);
+      } else {
+        // Navigate to transcript screen if no note exists
+        router.push(`/transcript/${item.id}`);
+      }
+    };
+
+    return (
+      <View style={styles.transcriptItem}>
+        <TouchableOpacity
+          style={styles.transcriptContent}
+          onPress={handleItemPress}
+          onLongPress={() => handleDeleteTranscript(item)}
         >
-          {item.content}
-        </ThemedText>
-      </TouchableOpacity>
-      <TouchableOpacity
-        style={styles.deleteButton}
-        onPress={() => handleDeleteTranscript(item)}
-      >
-        <ThemedText type="defaultSemiBold" style={styles.deleteButtonText}>
-          Delete
-        </ThemedText>
-      </TouchableOpacity>
+          <ThemedText type="defaultSemiBold" style={styles.transcriptTitle}>
+            {displayTitle}
+          </ThemedText>
+          <ThemedText type="default" style={styles.transcriptDate}>
+            上次编辑 {formatDateTime(mostRecentTimestamp.toISOString())}
+            {!hasNote && "\t - 草稿"}
+          </ThemedText>
+          <ThemedText
+            type="default"
+            style={styles.transcriptPreview}
+            numberOfLines={1}
+          >
+            {item?.note ? item.note.content : item.content}
+          </ThemedText>
+        </TouchableOpacity>
+        <View style={styles.rightColumn}>
+          <TouchableOpacity
+            style={styles.deleteIconButton}
+            onPress={() => handleDeleteTranscript(item)}
+          >
+            <AntDesign name="delete" size={20} color="#FF3B30" />
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  };
+
+  const renderSectionHeader = ({ section }: { section: { title: string } }) => (
+    <View style={styles.sectionHeader}>
+      <ThemedText type="subtitle" style={styles.sectionTitle}>
+        {section.title}
+      </ThemedText>
     </View>
   );
 
@@ -136,8 +265,9 @@ export default function TranscriptsScreen() {
           </ThemedText>
         </View>
       ) : (
-        <FlatList
-          data={transcripts}
+        <SectionList
+          sections={groupedTranscripts}
+          renderSectionHeader={renderSectionHeader}
           renderItem={renderTranscriptItem}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.listContent}
@@ -150,6 +280,7 @@ export default function TranscriptsScreen() {
           }
           ListEmptyComponent={renderEmptyState}
           showsVerticalScrollIndicator={false}
+          stickySectionHeadersEnabled={true}
         />
       )}
     </ThemedView>
@@ -180,6 +311,21 @@ const styles = StyleSheet.create({
   listContent: {
     paddingBottom: 16,
     flexGrow: 1,
+  },
+  sectionHeader: {
+    backgroundColor: 'rgba(0, 122, 255, 0.05)',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    marginTop: 16,
+    marginBottom: 8,
+    borderLeftWidth: 3,
+    borderLeftColor: '#007AFF',
+    borderRadius: 4,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    opacity: 0.8,
   },
   transcriptItem: {
     backgroundColor: 'rgba(0, 122, 255, 0.1)',
@@ -278,5 +424,54 @@ const styles = StyleSheet.create({
   },
   loginButtonText: {
     color: 'white',
+  },
+  titleRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 4,
+  },
+  noteStatus: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 12,
+    marginLeft: 8,
+  },
+  hasNote: {
+    backgroundColor: 'rgba(52, 199, 89, 0.2)',
+    borderColor: 'rgba(52, 199, 89, 0.5)',
+    borderWidth: 1,
+  },
+  noNote: {
+    backgroundColor: 'rgba(142, 142, 147, 0.2)',
+    borderColor: 'rgba(142, 142, 147, 0.5)',
+    borderWidth: 1,
+  },
+  noteStatusText: {
+    fontSize: 12,
+    opacity: 0.8,
+  },
+  rightColumn: {
+    alignItems: 'flex-end',
+    gap: 8,
+  },
+  deleteIconButton: {
+    padding: 4,
+    justifyContent: 'center',
+    alignItems: 'center',
+    height: 30,
+  },
+  noNoteCircle: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: 'rgba(142, 142, 147, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  noNoteCircleText: {
+    fontSize: 8,
+    color: 'white',
+    lineHeight: 16,
   },
 });

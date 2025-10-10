@@ -14,6 +14,7 @@ export interface Transcript {
   created_at: string;
   updated_at: string;
   note_id?: string;
+  note?: Note | null;
 }
 
 export interface Note {
