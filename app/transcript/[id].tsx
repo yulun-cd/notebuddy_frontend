@@ -1,7 +1,6 @@
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { useTranscripts } from '@/contexts/TranscriptsContext';
-import { notesService } from '@/services/notesService';
 import { transcriptsService } from '@/services/transcriptsService';
 import { Transcript } from '@/types';
 import { usePreventRemove } from '@react-navigation/native';
@@ -29,8 +28,7 @@ export default function TranscriptDetailScreen() {
   const [editedContent, setEditedContent] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
-  const [hasNote, setHasNote] = useState(false);
-  const [noteId, setNoteId] = useState<string | null>(null);
+  const [isGeneratingNote, setIsGeneratingNote] = useState(false);
 
   const titleInputRef = useRef<TextInput>(null);
   const contentInputRef = useRef<TextInput>(null);
@@ -50,21 +48,7 @@ export default function TranscriptDetailScreen() {
       setEditedTitle(transcriptData.title);
       setEditedContent(transcriptData.content);
 
-      // Check if transcript has note_id
-      if (transcriptData.note_id) {
-        setHasNote(true);
-        setNoteId(transcriptData.note_id);
-      } else {
-        // Fallback: Check if note exists for this transcript
-        const note = await notesService.getNoteByTranscriptId(transcriptData.id);
-        if (note) {
-          setHasNote(true);
-          setNoteId(note.id);
-        } else {
-          setHasNote(false);
-          setNoteId(null);
-        }
-      }
+      // Note: We no longer track note state since View Note button was removed
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to load transcript';
       setError(errorMessage);
@@ -107,39 +91,47 @@ export default function TranscriptDetailScreen() {
   const handleGenerateNote = async () => {
     if (!transcript) return;
 
-    try {
+    // Check if transcript already has a note
+    if (transcript.note_id) {
       Alert.alert(
-        'Generate Note',
-        'This will generate a note from your transcript using AI. Continue?',
+        'Overwrite Existing Note',
+        'This transcript already has a note. Generating a new note will overwrite the existing one. Do you want to continue?',
         [
-          { text: 'Cancel', style: 'cancel' },
           {
-            text: 'Generate',
-            style: 'default',
+            text: 'Cancel',
+            style: 'cancel',
+          },
+          {
+            text: 'Overwrite',
+            style: 'destructive',
             onPress: async () => {
-              try {
-                const result = await transcriptsService.generateNote(transcript.id);
-                // Auto-navigate to the new note screen
-                router.push(`/note/${result.id}` as any);
-              } catch (err) {
-                const errorMessage = err instanceof Error ? err.message : 'Failed to generate note';
-                Alert.alert('Error', errorMessage);
-              }
+              await generateNewNote();
             },
           },
         ]
       );
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to generate note';
-      Alert.alert('Error', errorMessage);
+    } else {
+      // No existing note, generate directly
+      await generateNewNote();
     }
   };
 
-  const handleViewNote = () => {
-    if (noteId) {
-      router.push(`/note/${noteId}` as any);
+  const generateNewNote = async () => {
+    if (!transcript) return;
+
+    try {
+      setIsGeneratingNote(true);
+      const result = await transcriptsService.generateNote(transcript.id);
+      // Auto-navigate to the new note screen
+      router.push(`/note/${result.id}` as any);
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to generate note';
+      Alert.alert('Error', errorMessage);
+    } finally {
+      setIsGeneratingNote(false);
     }
   };
+
 
   // Handle navigation away with unsaved changes using usePreventRemove hook
   usePreventRemove(hasUnsavedChanges, () => {
@@ -279,31 +271,22 @@ export default function TranscriptDetailScreen() {
               </ThemedText>
             )}
           </TouchableOpacity>
-          <TouchableOpacity
-            style={[
-              styles.actionButton,
-              styles.viewNoteButton,
-              (isSaving||!hasNote) && styles.disabledButton
-            ]}
-            onPress={handleViewNote}
-            disabled={(isSaving||!hasNote)}
-          >
-            <ThemedText type="defaultSemiBold" style={styles.actionButtonText}>
-              View Note
-            </ThemedText>
-          </TouchableOpacity>
         <TouchableOpacity
           style={[
             styles.actionButton,
             styles.generateNoteButton,
-            isSaving && styles.disabledButton
+            (isSaving || isGeneratingNote) && styles.disabledButton
           ]}
           onPress={handleGenerateNote}
-          disabled={isSaving}
+          disabled={isSaving || isGeneratingNote}
         >
-          <ThemedText type="defaultSemiBold" style={styles.actionButtonText}>
-            Generate Note
-          </ThemedText>
+          {isGeneratingNote ? (
+            <ActivityIndicator size="small" color="white" />
+          ) : (
+            <ThemedText type="defaultSemiBold" style={styles.actionButtonText}>
+              Generate Note
+            </ThemedText>
+          )}
         </TouchableOpacity>
       </View>
     </ThemedView>
@@ -408,9 +391,6 @@ const styles = StyleSheet.create({
   },
   saveButton: {
     backgroundColor: '#34C759',
-  },
-  viewNoteButton: {
-    backgroundColor: '#FF9500',
   },
   generateNoteButton: {
     backgroundColor: '#5856D6',

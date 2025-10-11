@@ -2,9 +2,10 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { useNotes } from '@/contexts/NotesContext';
 import { notesService } from '@/services/notesService';
+import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, usePreventRemove } from '@react-navigation/native';
 import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -14,6 +15,7 @@ import {
   TouchableOpacity,
   View
 } from 'react-native';
+import { Menu, MenuItem } from 'react-native-material-menu';
 
 export default function NoteDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -27,10 +29,40 @@ export default function NoteDetailScreen() {
   const [questions, setQuestions] = useState<string[]>([]);
   const [isGeneratingQuestions, setIsGeneratingQuestions] = useState(false);
   const [questionsError, setQuestionsError] = useState<string | null>(null);
+  const [transcriptId, setTranscriptId] = useState<string | null>(null);
+  const [menuVisible, setMenuVisible] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
 
   const titleInputRef = useRef<TextInput>(null);
   const contentInputRef = useRef<TextInput>(null);
+
+  const hideMenu = () => setMenuVisible(false);
+  const showMenu = () => setMenuVisible(true);
+
+  // Set up navigation header with dropdown button
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      headerRight: () => (
+        <Menu
+          visible={menuVisible}
+          anchor={
+            <TouchableOpacity
+              style={styles.headerDropdownButton}
+              onPress={showMenu}
+            >
+              <Ionicons name="ellipsis-vertical" size={24} color="#007AFF" />
+            </TouchableOpacity>
+          }
+          onRequestClose={hideMenu}
+          style={styles.menuStyle}
+        >
+          <MenuItem onPress={handleViewTranscript}>
+            View Original Transcript
+          </MenuItem>
+        </Menu>
+      ),
+    });
+  }, [navigation, menuVisible, transcriptId]);
 
   useEffect(() => {
     if (id) {
@@ -52,6 +84,11 @@ export default function NoteDetailScreen() {
       setEditedTitle(currentNote.title);
       setEditedContent(currentNote.content);
       setHasUnsavedChanges(false);
+
+      // Get transcript ID from note data
+      if (currentNote.transcript_id) {
+        setTranscriptId(currentNote.transcript_id);
+      }
     }
   }, [currentNote]);
 
@@ -120,6 +157,47 @@ export default function NoteDetailScreen() {
       pathname: `/answer/${currentNote.id}`,
       params: { question }
     } as any);
+  };
+
+  const handleViewTranscript = () => {
+    hideMenu();
+
+    // Check for unsaved changes before navigating
+    if (hasUnsavedChanges) {
+      Alert.alert(
+        'Unsaved Changes',
+        'You have unsaved changes. Do you want to discard them?',
+        [
+          {
+            text: "Don't leave",
+            style: 'cancel',
+            onPress: () => {
+              // User stays on the note screen
+            },
+          },
+          {
+            text: 'Discard',
+            style: 'destructive',
+            onPress: () => {
+              // Discard changes and navigate to transcript
+              setHasUnsavedChanges(false);
+              if (transcriptId) {
+                router.push(`/transcript/${transcriptId}` as any);
+              } else {
+                Alert.alert('Error', 'No transcript found for this note');
+              }
+            },
+          },
+        ]
+      );
+    } else {
+      // No unsaved changes, navigate directly
+      if (transcriptId) {
+        router.push(`/transcript/${transcriptId}` as any);
+      } else {
+        Alert.alert('Error', 'No transcript found for this note');
+      }
+    }
   };
 
   // Handle navigation away with unsaved changes using usePreventRemove hook
@@ -360,6 +438,10 @@ const styles = StyleSheet.create({
     fontSize: 14,
     opacity: 0.7,
   },
+  headerDropdownButton: {
+    padding: 8,
+    marginRight: 16,
+  },
   contentSection: {
     marginBottom: 24,
   },
@@ -432,5 +514,8 @@ const styles = StyleSheet.create({
   questionText: {
     fontSize: 16,
     lineHeight: 22,
+  },
+  menuStyle: {
+    marginTop: 60, // Position below navigation bar
   },
 });
