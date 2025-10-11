@@ -226,7 +226,7 @@ export default function TranscriptDetailScreen() {
             onChangeText={handleTitleChange}
             placeholder="Enter transcript title"
             multiline
-            editable={!isSaving}
+            editable={!isSaving && !isGeneratingNote}
           />
           <ThemedText type="default" style={styles.date}>
             Created {formatDate(transcript.created_at)}
@@ -248,7 +248,7 @@ export default function TranscriptDetailScreen() {
             placeholder="Enter transcript content"
             multiline
             textAlignVertical="top"
-            editable={!isSaving}
+            editable={!isSaving && !isGeneratingNote}
           />
         </View>
       </ScrollView>

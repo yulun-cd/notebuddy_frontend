@@ -294,7 +294,7 @@ export default function NoteDetailScreen() {
             onBlur={handleTitleBlur}
             placeholder="Enter note title"
             multiline
-            editable={!isSaving}
+            editable={!isSaving && !isGeneratingQuestions}
           />
           <ThemedText type="default" style={styles.date}>
             Created {formatDate(currentNote.created_at)}
@@ -317,7 +317,7 @@ export default function NoteDetailScreen() {
             placeholder="Enter note content"
             multiline
             textAlignVertical="top"
-            editable={!isSaving}
+            editable={!isSaving && !isGeneratingQuestions}
           />
         </View>
 
