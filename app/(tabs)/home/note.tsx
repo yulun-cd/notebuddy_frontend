@@ -31,7 +31,6 @@ export default function NoteDetailScreen() {
   const [questionsError, setQuestionsError] = useState<string | null>(null);
   const [transcriptId, setTranscriptId] = useState<string | null>(null);
   const [menuVisible, setMenuVisible] = useState(false);
-  const scrollViewRef = useRef<ScrollView>(null);
 
   const titleInputRef = useRef<TextInput>(null);
   const contentInputRef = useRef<TextInput>(null);
@@ -153,10 +152,7 @@ export default function NoteDetailScreen() {
     if (!currentNote) return;
 
     // Navigate to the answering screen with the question and note_id
-    router.push({
-      pathname: `/answer/${currentNote.id}`,
-      params: { question }
-    } as any);
+    router.push(`/home/answer?note_id=${currentNote.id}&question=${encodeURIComponent(question)}`);
   };
 
   const handleViewTranscript = () => {
@@ -182,7 +178,7 @@ export default function NoteDetailScreen() {
               // Discard changes and navigate to transcript
               setHasUnsavedChanges(false);
               if (transcriptId) {
-                router.push(`/transcript/${transcriptId}` as any);
+                router.push(`/home/transcript?id=${transcriptId}`);
               } else {
                 Alert.alert('Error', 'No transcript found for this note');
               }
@@ -193,7 +189,7 @@ export default function NoteDetailScreen() {
     } else {
       // No unsaved changes, navigate directly
       if (transcriptId) {
-        router.push(`/transcript/${transcriptId}` as any);
+        router.push(`/home/transcript?id=${transcriptId}`);
       } else {
         Alert.alert('Error', 'No transcript found for this note');
       }
@@ -489,14 +485,14 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   saveButton: {
-    backgroundColor: '#34C759',
+    backgroundColor: '#18612aff',
   },
   disabledButton: {
     backgroundColor: '#C7C7CC',
     opacity: 0.6,
   },
   generateQuestionsButton: {
-    backgroundColor: '#5856D6',
+    backgroundColor: '#28266dff',
   },
   questionsSection: {
     marginBottom: 24,

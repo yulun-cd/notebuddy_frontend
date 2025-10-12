@@ -36,10 +36,10 @@ export default function LoginScreen() {
     try {
       if (isLoginMode) {
         await login(email.trim(), password.trim());
-        router.replace('/(tabs)');
+        router.replace('/home');
       } else {
         await register(email.trim(), password.trim(), name.trim());
-        router.replace('/(tabs)');
+        router.replace('/home');
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : '认证失败';

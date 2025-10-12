@@ -1,53 +1,43 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { Stack } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
 
+import { ThemedText } from '@/components/themed-text';
+import { ThemedView } from '@/components/themed-view';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { NotesProvider } from '@/contexts/NotesContext';
 import { TranscriptsProvider } from '@/contexts/TranscriptsContext';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { ActivityIndicator } from 'react-native';
 
 export const unstable_settings = {
   anchor: '(tabs)',
 };
 
-function RootLayoutNav() {
-  const colorScheme = useColorScheme();
+function LoadingScreen() {
+  return (
+    <ThemedView style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+      <ActivityIndicator size="large" />
+      <ThemedText type="default" style={{ marginTop: 16 }}>
+        正在加载...
+      </ThemedText>
+    </ThemedView>
+  );
+}
+
+function AppContent() {
   const { isAuthenticated, isLoading } = useAuth();
 
   if (isLoading) {
-    return null; // Or a loading screen
+    return <LoadingScreen />;
   }
 
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack>
-        {!isAuthenticated ? (
-          <Stack.Screen name="login" options={{ headerShown: false }} />
-        ) : (
-          <>
-            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-            <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
-            <Stack.Screen
-              name="transcript/[id]"
-              options={{
-                title: 'Transcript',
-                headerBackTitle: 'Back'
-              }}
-            />
-            <Stack.Screen
-              name="note/[id]"
-              options={{
-                title: 'Note',
-                headerBackTitle: 'Back'
-              }}
-            />
-          </>
-        )}
-      </Stack>
-      <StatusBar style="auto" />
-    </ThemeProvider>
+    <Stack>
+      {isAuthenticated ? (
+        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+      ) : (
+        <Stack.Screen name="login" options={{ headerShown: false }} />
+      )}
+    </Stack>
   );
 }
 
@@ -56,7 +46,7 @@ export default function RootLayout() {
     <AuthProvider>
       <TranscriptsProvider>
         <NotesProvider>
-          <RootLayoutNav />
+          <AppContent />
         </NotesProvider>
       </TranscriptsProvider>
     </AuthProvider>

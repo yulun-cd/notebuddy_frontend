@@ -123,7 +123,7 @@ export default function TranscriptDetailScreen() {
       setIsGeneratingNote(true);
       const result = await transcriptsService.generateNote(transcript.id);
       // Auto-navigate to the new note screen
-      router.push(`/note/${result.id}` as any);
+      router.push(`/home/note?id=${result.id}`);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to generate note';
       Alert.alert('Error', errorMessage);

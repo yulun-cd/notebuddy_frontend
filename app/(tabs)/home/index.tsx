@@ -17,7 +17,7 @@ import {
   View
 } from 'react-native';
 
-export default function TranscriptsScreen() {
+export default function HomeListScreen() {
   const router = useRouter();
   const { transcripts, isLoading, error, refreshTranscripts, deleteTranscript } = useTranscripts();
   const { isAuthenticated } = useAuth();
@@ -159,10 +159,10 @@ export default function TranscriptsScreen() {
     const handleItemPress = () => {
       if (hasNote && item.note) {
         // Navigate to note screen if transcript has a note
-        router.push(`/note/${item.note.id}`);
+        router.push(`/home/note?id=${item.note.id}`);
       } else {
         // Navigate to transcript screen if no note exists
-        router.push(`/transcript/${item.id}`);
+        router.push(`/home/transcript?id=${item.id}`);
       }
     };
 
@@ -222,7 +222,7 @@ export default function TranscriptsScreen() {
       {!isAuthenticated && (
         <TouchableOpacity
           style={styles.loginButton}
-          onPress={() => router.push('/login' as any)}
+          onPress={() => router.push('/login')}
         >
           <ThemedText type="defaultSemiBold" style={styles.loginButtonText}>
             登录

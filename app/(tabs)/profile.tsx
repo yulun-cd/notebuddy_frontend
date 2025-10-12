@@ -49,7 +49,7 @@ export default function ProfileScreen() {
           </ThemedText>
           <TouchableOpacity
             style={styles.loginButton}
-            onPress={() => router.push('/login' as any)}
+            onPress={() => router.push('/login')}
             disabled={isLoading}
           >
             <ThemedText type="defaultSemiBold" style={styles.loginButtonText}>

@@ -2,7 +2,7 @@ import { ApiResponse, AuthTokens } from '@/types';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios, { AxiosInstance, AxiosResponse } from 'axios';
 
-const API_BASE_URL = 'http://192.168.0.196:8000';
+const API_BASE_URL = 'http://127.0.0.1:8000';
 
 class ApiService {
   private client: AxiosInstance;
