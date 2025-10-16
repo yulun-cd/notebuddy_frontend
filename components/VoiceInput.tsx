@@ -15,14 +15,12 @@ interface VoiceInputProps {
   value: string;
   onChangeText: (text: string) => void;
   placeholder?: string;
-  onModeChange?: (isVoiceMode: boolean) => void;
 }
 
 export const VoiceInput: React.FC<VoiceInputProps> = ({
   value,
   onChangeText,
-  placeholder = 'Tap the microphone to speak',
-  onModeChange,
+  placeholder = 'Enter text or use voice input...',
 }) => {
   const {
     isRecording,
@@ -32,32 +30,16 @@ export const VoiceInput: React.FC<VoiceInputProps> = ({
     startRecording,
     stopRecording,
     reset,
-    setTranscribedText,
   } = useSpeechRecognition();
-
-  const [mode, setMode] = React.useState<'voice' | 'text'>('voice');
-  const isVoiceMode = mode === 'voice';
-
-  const handleToggleMode = () => {
-    if (isVoiceMode) {
-      // Switching to text mode
-      setMode('text');
-      onModeChange?.(false);
-    } else {
-      // Switching to voice mode
-      setMode('voice');
-      reset();
-      onChangeText('');
-      onModeChange?.(true);
-    }
-  };
 
   const handleRecordingToggle = async () => {
     if (isRecording) {
       await stopRecording();
-      // Update the parent component with the transcribed text
+      // Append the transcribed text to existing content
       if (transcribedText) {
-        onChangeText(transcribedText);
+        const newText = value ? `${value} ${transcribedText}` : transcribedText;
+        onChangeText(newText);
+        reset();
       }
     } else {
       await startRecording();
@@ -66,7 +48,6 @@ export const VoiceInput: React.FC<VoiceInputProps> = ({
 
   const handleTextChange = (text: string) => {
     onChangeText(text);
-    setTranscribedText(text);
   };
 
   // Show error if any
@@ -78,9 +59,18 @@ export const VoiceInput: React.FC<VoiceInputProps> = ({
 
   return (
     <ThemedView style={styles.container}>
-      {isVoiceMode ? (
-        // Voice Mode - Default View
-        <View style={styles.voiceModeContainer}>
+      <View style={styles.inputContainer}>
+        <TextInput
+          style={styles.textInput}
+          value={value}
+          onChangeText={handleTextChange}
+          placeholder={placeholder}
+          multiline
+          textAlignVertical="top"
+          editable={!isRecording}
+        />
+
+        <View style={styles.voiceControls}>
           <TouchableOpacity
             style={[
               styles.microphoneButton,
@@ -90,75 +80,24 @@ export const VoiceInput: React.FC<VoiceInputProps> = ({
             disabled={isProcessing}
           >
             {isProcessing ? (
-              <ActivityIndicator size="large" color="white" />
+              <ActivityIndicator size="small" color="white" />
             ) : (
-              <ThemedText type="title" style={styles.microphoneIcon}>
+              <ThemedText type="default" style={styles.microphoneIcon}>
                 🎤
               </ThemedText>
             )}
           </TouchableOpacity>
 
-          <ThemedText type="subtitle" style={styles.instructionText}>
-            {isRecording ? 'Listening... Speak now' : 'Tap to start speaking'}
+          <ThemedText type="default" style={styles.instructionText}>
+            {isRecording ? 'Listening...' : 'Tap to speak'}
           </ThemedText>
-
-          {isRecording && (
-            <ThemedText type="default" style={styles.recordingIndicator}>
-              ● Recording
-            </ThemedText>
-          )}
-
-          <TouchableOpacity
-            style={styles.switchModeButton}
-            onPress={handleToggleMode}
-          >
-            <ThemedText type="default" style={styles.switchModeText}>
-              Switch to text input
-            </ThemedText>
-          </TouchableOpacity>
         </View>
-      ) : (
-        // Text Mode - Show transcribed text for editing
-        <View style={styles.textModeContainer}>
-          <ThemedText type="subtitle" style={styles.sectionTitle}>
-            Edit your text
-          </ThemedText>
+      </View>
 
-          <TextInput
-            style={styles.textInput}
-            value={value || transcribedText}
-            onChangeText={handleTextChange}
-            placeholder={placeholder}
-            multiline
-            textAlignVertical="top"
-            editable={!isRecording}
-          />
-
-          <View style={styles.textModeActions}>
-            <TouchableOpacity
-              style={styles.voiceButton}
-              onPress={handleRecordingToggle}
-              disabled={isProcessing}
-            >
-              {isProcessing ? (
-                <ActivityIndicator size="small" color="white" />
-              ) : (
-                <ThemedText type="defaultSemiBold" style={styles.voiceButtonText}>
-                  {isRecording ? 'Stop Recording' : 'Record More'}
-                </ThemedText>
-              )}
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.switchModeButton}
-              onPress={handleToggleMode}
-            >
-              <ThemedText type="default" style={styles.switchModeText}>
-                Back to voice input
-              </ThemedText>
-            </TouchableOpacity>
-          </View>
-        </View>
+      {isRecording && (
+        <ThemedText type="default" style={styles.recordingIndicator}>
+          ● Recording in progress
+        </ThemedText>
       )}
     </ThemedView>
   );
@@ -168,22 +107,35 @@ const styles = StyleSheet.create({
   container: {
     marginVertical: 16,
   },
-  voiceModeContainer: {
+  inputContainer: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+  },
+  textInput: {
+    flex: 1,
+    fontSize: 16,
+    lineHeight: 24,
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 8,
+    padding: 12,
+    backgroundColor: 'white',
+    minHeight: 120,
+    textAlignVertical: 'top',
+  },
+  voiceControls: {
     alignItems: 'center',
-    padding: 24,
-    backgroundColor: 'rgba(88, 86, 214, 0.1)',
-    borderRadius: 16,
-    borderWidth: 2,
-    borderColor: 'rgba(88, 86, 214, 0.2)',
+    gap: 8,
+    paddingTop: 8,
   },
   microphoneButton: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
+    width: 50,
+    height: 50,
+    borderRadius: 25,
     backgroundColor: '#34C759',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 16,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
@@ -195,62 +147,18 @@ const styles = StyleSheet.create({
     transform: [{ scale: 1.1 }],
   },
   microphoneIcon: {
-    fontSize: 36,
+    fontSize: 20,
     color: 'white',
   },
   instructionText: {
+    fontSize: 12,
+    opacity: 0.7,
     textAlign: 'center',
-    marginBottom: 8,
-    opacity: 0.8,
   },
   recordingIndicator: {
     color: '#FF3B30',
     fontWeight: 'bold',
-    marginBottom: 16,
-  },
-  switchModeButton: {
-    padding: 8,
-  },
-  switchModeText: {
-    color: '#5856D6',
-    textDecorationLine: 'underline',
-  },
-  textModeContainer: {
-    backgroundColor: 'white',
-    borderRadius: 8,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: '#e0e0e0',
-  },
-  sectionTitle: {
-    marginBottom: 12,
-    opacity: 0.8,
-  },
-  textInput: {
-    fontSize: 16,
-    lineHeight: 24,
-    borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 8,
-    padding: 12,
-    backgroundColor: 'white',
-    minHeight: 120,
-    textAlignVertical: 'top',
-    marginBottom: 16,
-  },
-  textModeActions: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  voiceButton: {
-    backgroundColor: '#5856D6',
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-  },
-  voiceButtonText: {
-    color: 'white',
+    marginTop: 8,
     fontSize: 14,
   },
 });

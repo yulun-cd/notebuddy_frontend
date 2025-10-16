@@ -100,9 +100,6 @@ export default function CreateTranscriptScreen() {
                 maxLength={200}
                 autoFocus
               />
-              <ThemedText type="default" style={styles.charCount}>
-                {title.length}/200
-              </ThemedText>
             </View>
 
             <View style={styles.inputGroup}>
@@ -114,9 +111,6 @@ export default function CreateTranscriptScreen() {
                 onChangeText={setContent}
                 placeholder="Enter transcript content..."
               />
-              <ThemedText type="default" style={styles.charCount}>
-                {content.length}/5000
-              </ThemedText>
             </View>
           </View>
 
