@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { Alert, Platform } from 'react-native';
+import Voice from "@react-native-voice/voice";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Alert, Platform } from "react-native";
 
 export interface SpeechRecognitionState {
   isRecording: boolean;
@@ -12,7 +13,7 @@ export interface SpeechRecognitionState {
 const useWebSpeechRecognition = () => {
   const [state, setState] = useState<SpeechRecognitionState>({
     isRecording: false,
-    transcribedText: '',
+    transcribedText: "",
     isProcessing: false,
     error: null,
   });
@@ -22,10 +23,13 @@ const useWebSpeechRecognition = () => {
 
   useEffect(() => {
     // Check if Web Speech API is available
-    if (Platform.OS === 'web' && !('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) {
-      setState(prev => ({
+    if (
+      Platform.OS === "web" &&
+      !("webkitSpeechRecognition" in window || "SpeechRecognition" in window)
+    ) {
+      setState((prev) => ({
         ...prev,
-        error: 'Speech recognition is not supported in this browser',
+        error: "Speech recognition is not supported in this browser",
       }));
     }
   }, []);
@@ -40,14 +44,17 @@ const useWebSpeechRecognition = () => {
         recognitionRef.current.stop();
       }
 
-      setState(prev => ({
+      setState((prev) => ({
         ...prev,
         isRecording: false,
         isProcessing: false,
       }));
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to stop speech recognition';
-      setState(prev => ({
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : "Failed to stop speech recognition";
+      setState((prev) => ({
         ...prev,
         isRecording: false,
         isProcessing: false,
@@ -58,31 +65,35 @@ const useWebSpeechRecognition = () => {
 
   const startRecording = useCallback(async () => {
     try {
-      setState(prev => ({
+      setState((prev) => ({
         ...prev,
         isRecording: false,
         isProcessing: true,
         error: null,
-        transcribedText: '',
+        transcribedText: "",
       }));
 
-      if (Platform.OS !== 'web') {
-        throw new Error('Speech recognition is only available on web platform in Expo Go');
+      if (Platform.OS !== "web") {
+        throw new Error(
+          "Speech recognition is only available on web platform in Expo Go"
+        );
       }
 
       // Initialize Web Speech API
-      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+      const SpeechRecognition =
+        (window as any).SpeechRecognition ||
+        (window as any).webkitSpeechRecognition;
       if (!SpeechRecognition) {
-        throw new Error('Speech recognition is not supported in this browser');
+        throw new Error("Speech recognition is not supported in this browser");
       }
 
       recognitionRef.current = new SpeechRecognition();
       recognitionRef.current.continuous = false;
       recognitionRef.current.interimResults = false;
-      recognitionRef.current.lang = 'en-US';
+      recognitionRef.current.lang = "zh-CN";
 
       recognitionRef.current.onstart = () => {
-        setState(prev => ({
+        setState((prev) => ({
           ...prev,
           isRecording: true,
           isProcessing: false,
@@ -91,14 +102,14 @@ const useWebSpeechRecognition = () => {
 
       recognitionRef.current.onresult = (event: any) => {
         const transcript = event.results[0][0].transcript;
-        setState(prev => ({
+        setState((prev) => ({
           ...prev,
           transcribedText: transcript,
         }));
       };
 
       recognitionRef.current.onerror = (event: any) => {
-        setState(prev => ({
+        setState((prev) => ({
           ...prev,
           isRecording: false,
           isProcessing: false,
@@ -107,7 +118,7 @@ const useWebSpeechRecognition = () => {
       };
 
       recognitionRef.current.onend = () => {
-        setState(prev => ({
+        setState((prev) => ({
           ...prev,
           isRecording: false,
           isProcessing: false,
@@ -120,16 +131,18 @@ const useWebSpeechRecognition = () => {
       recognitionTimeoutRef.current = setTimeout(() => {
         stopRecording();
       }, 60000);
-
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to start speech recognition';
-      setState(prev => ({
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : "Failed to start speech recognition";
+      setState((prev) => ({
         ...prev,
         isRecording: false,
         isProcessing: false,
         error: errorMessage,
       }));
-      Alert.alert('Speech Recognition Error', errorMessage);
+      Alert.alert("Speech Recognition Error", errorMessage);
     }
   }, [stopRecording]);
 
@@ -144,14 +157,14 @@ const useWebSpeechRecognition = () => {
 
     setState({
       isRecording: false,
-      transcribedText: '',
+      transcribedText: "",
       isProcessing: false,
       error: null,
     });
   }, []);
 
   const setTranscribedText = useCallback((text: string) => {
-    setState(prev => ({
+    setState((prev) => ({
       ...prev,
       transcribedText: text,
     }));
@@ -166,55 +179,100 @@ const useWebSpeechRecognition = () => {
   };
 };
 
-// Mock implementation for native platforms in Expo Go
-const useMockSpeechRecognition = () => {
+// Native implementation using @react-native-voice/voice
+const useNativeSpeechRecognition = () => {
   const [state, setState] = useState<SpeechRecognitionState>({
     isRecording: false,
-    transcribedText: '',
+    transcribedText: "",
     isProcessing: false,
     error: null,
   });
 
   const recognitionTimeoutRef = useRef<ReturnType<typeof setTimeout>>(null);
 
-  const startRecording = useCallback(async () => {
-    try {
-      setState(prev => ({
-        ...prev,
-        isRecording: false,
-        isProcessing: true,
-        error: null,
-        transcribedText: '',
-      }));
-
-      // Simulate processing
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      setState(prev => ({
+  useEffect(() => {
+    // Set up voice recognition event handlers
+    Voice.onSpeechStart = () => {
+      setState((prev) => ({
         ...prev,
         isRecording: true,
         isProcessing: false,
       }));
+    };
 
-      // Auto-stop after 5 seconds with mock transcription
+    Voice.onSpeechEnd = () => {
+      setState((prev) => ({
+        ...prev,
+        isRecording: false,
+        isProcessing: false,
+      }));
+    };
+
+    Voice.onSpeechResults = (event: any) => {
+      if (event.value && event.value.length > 0) {
+        const transcript = event.value[0];
+        setState((prev) => ({
+          ...prev,
+          transcribedText: transcript,
+        }));
+      }
+    };
+
+    Voice.onSpeechError = (event: any) => {
+      setState((prev) => ({
+        ...prev,
+        isRecording: false,
+        isProcessing: false,
+        error: event.error?.message || "Speech recognition error",
+      }));
+    };
+
+    // Clean up on unmount
+    return () => {
+      Voice.destroy().then(Voice.removeAllListeners);
+    };
+  }, []);
+
+  const startRecording = useCallback(async () => {
+    try {
+      setState((prev) => ({
+        ...prev,
+        isRecording: false,
+        isProcessing: true,
+        error: null,
+        transcribedText: "",
+      }));
+
+      // Check if voice recognition is available
+      const isAvailable = await Voice.isAvailable();
+      if (!isAvailable) {
+        throw new Error("Speech recognition is not available on this device");
+      }
+
+      // Start listening for Chinese
+      await Voice.start("zh-CN");
+
+      setState((prev) => ({
+        ...prev,
+        isProcessing: false,
+      }));
+
+      // Auto-stop after 60 seconds
       recognitionTimeoutRef.current = setTimeout(() => {
         stopRecording();
-        // Simulate transcribed text
-        setState(prev => ({
-          ...prev,
-          transcribedText: "This is a mock transcription. For full speech recognition functionality, please use the web version or create a development build.",
-        }));
-      }, 5000);
-
+      }, 60000);
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to start speech recognition';
-      setState(prev => ({
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : "Failed to start speech recognition";
+      setState((prev) => ({
         ...prev,
         isRecording: false,
         isProcessing: false,
         error: errorMessage,
       }));
-      Alert.alert('Speech Recognition Error', errorMessage);
+      Alert.alert("Speech Recognition Error", errorMessage);
     }
   }, []);
 
@@ -224,14 +282,19 @@ const useMockSpeechRecognition = () => {
         clearTimeout(recognitionTimeoutRef.current);
       }
 
-      setState(prev => ({
+      await Voice.stop();
+
+      setState((prev) => ({
         ...prev,
         isRecording: false,
         isProcessing: false,
       }));
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to stop speech recognition';
-      setState(prev => ({
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : "Failed to stop speech recognition";
+      setState((prev) => ({
         ...prev,
         isRecording: false,
         isProcessing: false,
@@ -245,16 +308,18 @@ const useMockSpeechRecognition = () => {
       clearTimeout(recognitionTimeoutRef.current);
     }
 
+    Voice.stop();
+
     setState({
       isRecording: false,
-      transcribedText: '',
+      transcribedText: "",
       isProcessing: false,
       error: null,
     });
   }, []);
 
   const setTranscribedText = useCallback((text: string) => {
-    setState(prev => ({
+    setState((prev) => ({
       ...prev,
       transcribedText: text,
     }));
@@ -270,4 +335,5 @@ const useMockSpeechRecognition = () => {
 };
 
 // Export the appropriate implementation based on platform
-export const useSpeechRecognition = Platform.OS === 'web' ? useWebSpeechRecognition : useMockSpeechRecognition;
+export const useSpeechRecognition =
+  Platform.OS === "web" ? useWebSpeechRecognition : useNativeSpeechRecognition;
