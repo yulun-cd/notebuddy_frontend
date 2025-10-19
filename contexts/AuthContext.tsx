@@ -1,14 +1,28 @@
-import { apiService } from '@/services/api';
-import { authService } from '@/services/authService';
-import { AuthTokens } from '@/types';
-import React, { createContext, ReactNode, useContext, useEffect, useState } from 'react';
+import { apiService } from "@/services/api";
+import { authService } from "@/services/authService";
+import { AuthTokens } from "@/types";
+import React, {
+  createContext,
+  ReactNode,
+  useContext,
+  useEffect,
+  useState,
+} from "react";
 
 interface AuthContextType {
   email: string | null;
   tokens: AuthTokens | null;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
-  register: (email: string, password: string, name?: string) => Promise<void>;
+  register: (
+    email: string,
+    password: string,
+    firstName: string,
+    lastName: string,
+    language: string,
+    nickname?: string,
+    gender?: "Male" | "Female" | null
+  ) => Promise<void>;
   logout: () => Promise<void>;
   isAuthenticated: boolean;
 }
@@ -49,10 +63,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         const storedEmail = await apiService.getStoredEmail();
         setEmail(storedEmail);
       } else {
-        console.log('No existing tokens found on app start');
+        console.log("No existing tokens found on app start");
       }
     } catch (error) {
-      console.error('Auth status check failed:', error);
+      console.error("Auth status check failed:", error);
       // Clear any invalid tokens
       await authService.logout();
     } finally {
@@ -63,25 +77,43 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const login = async (email: string, password: string) => {
     setIsLoading(true);
     try {
-      const { email: loggedInEmail, tokens: newTokens } = await authService.login({ email, password });
+      const { email: loggedInEmail, tokens: newTokens } =
+        await authService.login({ email, password });
       setEmail(loggedInEmail);
       setTokens(newTokens);
     } catch (error) {
-      console.error('Login failed:', error);
+      console.error("Login failed:", error);
       throw error;
     } finally {
       setIsLoading(false);
     }
   };
 
-  const register = async (email: string, password: string, name?: string) => {
+  const register = async (
+    email: string,
+    password: string,
+    firstName: string,
+    lastName: string,
+    language: string,
+    nickname?: string,
+    gender?: "Male" | "Female" | null
+  ) => {
     setIsLoading(true);
     try {
-      const { email: registeredEmail, tokens: newTokens } = await authService.register({ email, password, name });
+      const { email: registeredEmail, tokens: newTokens } =
+        await authService.register({
+          email,
+          password,
+          first_name: firstName,
+          last_name: lastName,
+          language,
+          nick_name: nickname === undefined ? null : nickname,
+          gender: gender === undefined ? null : gender,
+        });
       setEmail(registeredEmail);
       setTokens(newTokens);
     } catch (error) {
-      console.error('Registration failed:', error);
+      console.error("Registration failed:", error);
       throw error;
     } finally {
       setIsLoading(false);
@@ -96,7 +128,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setEmail(null);
       setTokens(null);
     } catch (error) {
-      console.error('Logout failed:', error);
+      console.error("Logout failed:", error);
       // Don't clear local state if logout failed
       throw error;
     } finally {
@@ -120,7 +152,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 export const useAuth = (): AuthContextType => {
   const context = useContext(AuthContext);
   if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
 };

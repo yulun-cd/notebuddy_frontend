@@ -1,12 +1,12 @@
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { useAuth } from '@/contexts/AuthContext';
-import { useTranscripts } from '@/contexts/TranscriptsContext';
-import { Transcript } from '@/types';
-import { AntDesign } from '@expo/vector-icons';
-import { useFocusEffect } from '@react-navigation/native';
-import { useRouter } from 'expo-router';
-import React, { useMemo, useState } from 'react';
+import { ThemedText } from "@/components/themed-text";
+import { ThemedView } from "@/components/themed-view";
+import { useAuth } from "@/contexts/AuthContext";
+import { useTranscripts } from "@/contexts/TranscriptsContext";
+import { Transcript } from "@/types";
+import { AntDesign } from "@expo/vector-icons";
+import { useFocusEffect } from "@react-navigation/native";
+import { useRouter } from "expo-router";
+import React, { useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -15,21 +15,27 @@ import {
   StyleSheet,
   TextInput,
   TouchableOpacity,
-  View
-} from 'react-native';
-import { Menu, MenuItem } from 'react-native-material-menu';
+  View,
+} from "react-native";
+import { Menu, MenuItem } from "react-native-material-menu";
 
 export default function HomeListScreen() {
   const router = useRouter();
-  const { transcripts, isLoading, error, refreshTranscripts, deleteTranscript } = useTranscripts();
+  const {
+    transcripts,
+    isLoading,
+    error,
+    refreshTranscripts,
+    deleteTranscript,
+  } = useTranscripts();
   const { isAuthenticated } = useAuth();
   const [refreshing, setRefreshing] = useState(false);
-  const [lastRefreshTime, setLastRefreshTime] = useState(0);
+  const lastRefreshTimeRef = useRef(0);
   const [menuVisible, setMenuVisible] = useState(false);
   const [orderMenuVisible, setOrderMenuVisible] = useState(false);
-  const [noteStatusFilter, setNoteStatusFilter] = useState<string>('all');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [orderBy, setOrderBy] = useState<'desc' | 'asc'>('desc');
+  const [noteStatusFilter, setNoteStatusFilter] = useState<string>("all");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [orderBy, setOrderBy] = useState<"desc" | "asc">("desc");
 
   const hideMenu = () => setMenuVisible(false);
   const showMenu = () => setMenuVisible(true);
@@ -40,16 +46,16 @@ export default function HomeListScreen() {
   useFocusEffect(
     React.useCallback(() => {
       const now = Date.now();
-      const timeSinceLastRefresh = now - lastRefreshTime;
+      const timeSinceLastRefresh = now - lastRefreshTimeRef.current;
 
       // Only refresh if it's been more than 2 seconds since last refresh
       if (timeSinceLastRefresh > 2000) {
         if (isAuthenticated) {
           refreshTranscripts(false); // Don't use cache to get fresh data
         }
-        setLastRefreshTime(now);
+        lastRefreshTimeRef.current = now;
       }
-    }, [isAuthenticated, lastRefreshTime, refreshTranscripts])
+    }, [isAuthenticated, refreshTranscripts])
   );
 
   const onRefresh = async () => {
@@ -59,31 +65,31 @@ export default function HomeListScreen() {
   };
 
   const handleDeleteTranscript = (transcript: Transcript) => {
-    Alert.alert(
-      '删除笔记',
-      `确定要删除"${transcript.title}"吗？`,
-      [
-        { text: '取消', style: 'cancel' },
-        {
-          text: '删除',
-          style: 'destructive',
-          onPress: async () => {
-            await deleteTranscript(transcript.id);
-            // Trigger refresh after deletion to update the list
-            refreshTranscripts(false);
-          },
+    Alert.alert("删除笔记", `确定要删除"${transcript.title}"吗？`, [
+      { text: "取消", style: "cancel" },
+      {
+        text: "删除",
+        style: "destructive",
+        onPress: async () => {
+          await deleteTranscript(transcript.id);
+          // Trigger refresh after deletion to update the list
+          refreshTranscripts(false);
         },
-      ]
-    );
+      },
+    ]);
   };
 
   const getMostRecentTimestamp = (transcript: Transcript) => {
     const timestamps = [
       transcript.created_at,
       transcript.updated_at,
-      ...(transcript.note ? [transcript.note.created_at, transcript.note.updated_at] : [])
+      ...(transcript.note
+        ? [transcript.note.created_at, transcript.note.updated_at]
+        : []),
     ];
-    return new Date(Math.max(...timestamps.map(ts => new Date(ts).getTime())));
+    return new Date(
+      Math.max(...timestamps.map((ts) => new Date(ts).getTime()))
+    );
   };
 
   const formatDateTime = (dateString: string) => {
@@ -93,29 +99,29 @@ export default function HomeListScreen() {
 
     if (isToday) {
       // Show time for today's items
-      return date.toLocaleTimeString('zh-CN', {
-        hour: '2-digit',
-        minute: '2-digit',
+      return date.toLocaleTimeString("zh-CN", {
+        hour: "2-digit",
+        minute: "2-digit",
         hour12: false,
       });
     } else {
       // Show date for older items
-      return date.toLocaleDateString('zh-CN', {
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit'
+      return date.toLocaleDateString("zh-CN", {
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
       });
     }
   };
 
   // Filter transcripts based on current filters
   const filteredTranscripts = useMemo(() => {
-    return transcripts.filter(transcript => {
+    return transcripts.filter((transcript) => {
       // Apply note status filter
-      if (noteStatusFilter === 'hasNote' && !transcript.note) {
+      if (noteStatusFilter === "hasNote" && !transcript.note) {
         return false;
       }
-      if (noteStatusFilter === 'noNote' && transcript.note) {
+      if (noteStatusFilter === "noNote" && transcript.note) {
         return false;
       }
 
@@ -148,7 +154,7 @@ export default function HomeListScreen() {
       const aTime = new Date(getMostRecentTimestamp(a)).getTime();
       const bTime = new Date(getMostRecentTimestamp(b)).getTime();
 
-      if (orderBy === 'desc') {
+      if (orderBy === "desc") {
         return bTime - aTime; // Newest first
       } else {
         return aTime - bTime; // Oldest first
@@ -159,10 +165,10 @@ export default function HomeListScreen() {
       today: [] as Transcript[],
       thisWeek: [] as Transcript[],
       thisMonth: [] as Transcript[],
-      older: [] as Transcript[]
+      older: [] as Transcript[],
     };
 
-    sorted.forEach(transcript => {
+    sorted.forEach((transcript) => {
       const timestamp = getMostRecentTimestamp(transcript);
       const date = new Date(timestamp);
 
@@ -180,20 +186,20 @@ export default function HomeListScreen() {
     // Convert to SectionList format, filtering empty sections
     const sections = [];
     if (groups.today.length > 0) {
-      sections.push({ title: '今天', data: groups.today });
+      sections.push({ title: "今天", data: groups.today });
     }
     if (groups.thisWeek.length > 0) {
-      sections.push({ title: '本周', data: groups.thisWeek });
+      sections.push({ title: "本周", data: groups.thisWeek });
     }
     if (groups.thisMonth.length > 0) {
-      sections.push({ title: '本月', data: groups.thisMonth });
+      sections.push({ title: "本月", data: groups.thisMonth });
     }
     if (groups.older.length > 0) {
-      sections.push({ title: '更早', data: groups.older });
+      sections.push({ title: "更早", data: groups.older });
     }
 
     // Reverse sections for ascending order (oldest first)
-    if (orderBy === 'asc') {
+    if (orderBy === "asc") {
       return sections.reverse();
     }
 
@@ -260,18 +266,17 @@ export default function HomeListScreen() {
   const renderEmptyState = () => (
     <View style={styles.emptyState}>
       <ThemedText type="title" style={styles.emptyStateTitle}>
-        {isAuthenticated ? '暂无笔记' : '欢迎使用 NoteBuddy'}
+        {isAuthenticated ? "暂无笔记" : "欢迎使用 NoteBuddy"}
       </ThemedText>
       <ThemedText type="default" style={styles.emptyStateText}>
         {isAuthenticated
           ? "创建您的第一个笔记开始使用吧！"
-          : "请登录以查看和管理您的笔记"
-        }
+          : "请登录以查看和管理您的笔记"}
       </ThemedText>
       {!isAuthenticated && (
         <TouchableOpacity
           style={styles.loginButton}
-          onPress={() => router.push('/login')}
+          onPress={() => router.push("/login")}
         >
           <ThemedText type="defaultSemiBold" style={styles.loginButtonText}>
             登录
@@ -316,7 +321,7 @@ export default function HomeListScreen() {
               onPress={showOrderMenu}
             >
               <AntDesign
-                name={orderBy === 'desc' ? 'down' : 'up'}
+                name={orderBy === "desc" ? "down" : "up"}
                 size={16}
                 color="#007AFF"
               />
@@ -325,19 +330,39 @@ export default function HomeListScreen() {
           onRequestClose={hideOrderMenu}
           style={styles.menuStyle}
         >
-          <MenuItem onPress={() => { setOrderBy('desc'); hideOrderMenu(); }}>
+          <MenuItem
+            onPress={() => {
+              setOrderBy("desc");
+              hideOrderMenu();
+            }}
+          >
             <View style={styles.menuItemContent}>
               <ThemedText type="default">降序 (最新在前)</ThemedText>
-              {orderBy === 'desc' && (
-                <AntDesign name="check" size={16} color="#007AFF" style={styles.checkIcon} />
+              {orderBy === "desc" && (
+                <AntDesign
+                  name="check"
+                  size={16}
+                  color="#007AFF"
+                  style={styles.checkIcon}
+                />
               )}
             </View>
           </MenuItem>
-          <MenuItem onPress={() => { setOrderBy('asc'); hideOrderMenu(); }}>
+          <MenuItem
+            onPress={() => {
+              setOrderBy("asc");
+              hideOrderMenu();
+            }}
+          >
             <View style={styles.menuItemContent}>
               <ThemedText type="default">升序 (最旧在前)</ThemedText>
-              {orderBy === 'asc' && (
-                <AntDesign name="check" size={16} color="#007AFF" style={styles.checkIcon} />
+              {orderBy === "asc" && (
+                <AntDesign
+                  name="check"
+                  size={16}
+                  color="#007AFF"
+                  style={styles.checkIcon}
+                />
               )}
             </View>
           </MenuItem>
@@ -345,37 +370,64 @@ export default function HomeListScreen() {
         <Menu
           visible={menuVisible}
           anchor={
-            <TouchableOpacity
-              style={styles.filterButton}
-              onPress={showMenu}
-            >
+            <TouchableOpacity style={styles.filterButton} onPress={showMenu}>
               <AntDesign name="filter" size={16} color="#007AFF" />
             </TouchableOpacity>
           }
           onRequestClose={hideMenu}
           style={styles.menuStyle}
         >
-          <MenuItem onPress={() => { setNoteStatusFilter('all'); hideMenu(); }}>
+          <MenuItem
+            onPress={() => {
+              setNoteStatusFilter("all");
+              hideMenu();
+            }}
+          >
             <View style={styles.menuItemContent}>
               <ThemedText type="default">全部</ThemedText>
-              {noteStatusFilter === 'all' && (
-                <AntDesign name="check" size={16} color="#007AFF" style={styles.checkIcon} />
+              {noteStatusFilter === "all" && (
+                <AntDesign
+                  name="check"
+                  size={16}
+                  color="#007AFF"
+                  style={styles.checkIcon}
+                />
               )}
             </View>
           </MenuItem>
-          <MenuItem onPress={() => { setNoteStatusFilter('hasNote'); hideMenu(); }}>
+          <MenuItem
+            onPress={() => {
+              setNoteStatusFilter("hasNote");
+              hideMenu();
+            }}
+          >
             <View style={styles.menuItemContent}>
               <ThemedText type="default">有笔记</ThemedText>
-              {noteStatusFilter === 'hasNote' && (
-                <AntDesign name="check" size={16} color="#007AFF" style={styles.checkIcon} />
+              {noteStatusFilter === "hasNote" && (
+                <AntDesign
+                  name="check"
+                  size={16}
+                  color="#007AFF"
+                  style={styles.checkIcon}
+                />
               )}
             </View>
           </MenuItem>
-          <MenuItem onPress={() => { setNoteStatusFilter('noNote'); hideMenu(); }}>
+          <MenuItem
+            onPress={() => {
+              setNoteStatusFilter("noNote");
+              hideMenu();
+            }}
+          >
             <View style={styles.menuItemContent}>
               <ThemedText type="default">无笔记</ThemedText>
-              {noteStatusFilter === 'noNote' && (
-                <AntDesign name="check" size={16} color="#007AFF" style={styles.checkIcon} />
+              {noteStatusFilter === "noNote" && (
+                <AntDesign
+                  name="check"
+                  size={16}
+                  color="#007AFF"
+                  style={styles.checkIcon}
+                />
               )}
             </View>
           </MenuItem>
@@ -401,7 +453,7 @@ export default function HomeListScreen() {
               onChangeText={setSearchQuery}
               value={searchQuery}
               style={styles.searchBar}
-              autoCapitalize='none'
+              autoCapitalize="none"
               autoCorrect={false}
               clearButtonMode="while-editing"
             />
@@ -436,64 +488,64 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     paddingVertical: 16,
     paddingHorizontal: 4,
   },
   addButton: {
-    backgroundColor: '#007AFF',
+    backgroundColor: "#007AFF",
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 8,
   },
   addButtonText: {
-    color: 'white',
+    color: "white",
   },
   listContent: {
     paddingBottom: 16,
     flexGrow: 1,
   },
   sectionHeader: {
-    backgroundColor: 'rgba(0, 122, 255, 0.05)',
+    backgroundColor: "rgba(0, 122, 255, 0.05)",
     paddingVertical: 8,
     paddingHorizontal: 16,
     marginTop: 16,
     marginBottom: 8,
     borderLeftWidth: 3,
-    borderLeftColor: '#007AFF',
+    borderLeftColor: "#007AFF",
     borderRadius: 4,
   },
   sectionTitle: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
     opacity: 0.8,
   },
   transcriptItem: {
-    backgroundColor: 'rgba(0, 122, 255, 0.1)',
+    backgroundColor: "rgba(0, 122, 255, 0.1)",
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: 'rgba(0, 122, 255, 0.2)',
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
+    borderColor: "rgba(0, 122, 255, 0.2)",
+    flexDirection: "row",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
   },
   transcriptContent: {
     flex: 1,
     marginRight: 12,
   },
   deleteButton: {
-    backgroundColor: '#FF3B30',
+    backgroundColor: "#FF3B30",
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 6,
-    alignSelf: 'flex-start',
+    alignSelf: "flex-start",
   },
   deleteButtonText: {
-    color: 'white',
+    color: "white",
     fontSize: 12,
   },
   transcriptTitle: {
@@ -512,8 +564,8 @@ const styles = StyleSheet.create({
   },
   loadingContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     gap: 16,
   },
   loadingText: {
@@ -521,57 +573,57 @@ const styles = StyleSheet.create({
   },
   emptyState: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     paddingVertical: 80,
   },
   emptyStateTitle: {
     marginBottom: 8,
-    textAlign: 'center',
+    textAlign: "center",
   },
   emptyStateText: {
-    textAlign: 'center',
+    textAlign: "center",
     opacity: 0.7,
     paddingHorizontal: 32,
   },
   errorContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     paddingHorizontal: 32,
   },
   errorTitle: {
     marginBottom: 8,
-    textAlign: 'center',
+    textAlign: "center",
   },
   errorText: {
-    textAlign: 'center',
+    textAlign: "center",
     marginBottom: 24,
     opacity: 0.7,
   },
   retryButton: {
-    backgroundColor: '#007AFF',
+    backgroundColor: "#007AFF",
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 8,
   },
   retryButtonText: {
-    color: 'white',
+    color: "white",
   },
   loginButton: {
-    backgroundColor: '#007AFF',
+    backgroundColor: "#007AFF",
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 8,
     marginTop: 16,
   },
   loginButtonText: {
-    color: 'white',
+    color: "white",
   },
   titleRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
     marginBottom: 4,
   },
   noteStatus: {
@@ -581,13 +633,13 @@ const styles = StyleSheet.create({
     marginLeft: 8,
   },
   hasNote: {
-    backgroundColor: 'rgba(52, 199, 89, 0.2)',
-    borderColor: 'rgba(52, 199, 89, 0.5)',
+    backgroundColor: "rgba(52, 199, 89, 0.2)",
+    borderColor: "rgba(52, 199, 89, 0.5)",
     borderWidth: 1,
   },
   noNote: {
-    backgroundColor: 'rgba(142, 142, 147, 0.2)',
-    borderColor: 'rgba(142, 142, 147, 0.5)',
+    backgroundColor: "rgba(142, 142, 147, 0.2)",
+    borderColor: "rgba(142, 142, 147, 0.5)",
     borderWidth: 1,
   },
   noteStatusText: {
@@ -595,26 +647,26 @@ const styles = StyleSheet.create({
     opacity: 0.8,
   },
   rightColumn: {
-    alignItems: 'flex-end',
+    alignItems: "flex-end",
     gap: 8,
   },
   deleteIconButton: {
     padding: 4,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     height: 30,
   },
   noNoteCircle: {
     width: 16,
     height: 16,
     borderRadius: 8,
-    backgroundColor: 'rgba(142, 142, 147, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "rgba(142, 142, 147, 0.5)",
+    justifyContent: "center",
+    alignItems: "center",
   },
   noNoteCircleText: {
     fontSize: 8,
-    color: 'white',
+    color: "white",
     lineHeight: 16,
   },
   functionBar: {
@@ -622,29 +674,29 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
   functionBarContent: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    alignItems: "center",
   },
   orderButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'white',
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "white",
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 8,
     marginRight: 8,
   },
   filterButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'white',
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "white",
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 8,
   },
   filterButtonText: {
-    color: '#007AFF',
+    color: "#007AFF",
     fontSize: 14,
     marginRight: 6,
   },
@@ -655,22 +707,22 @@ const styles = StyleSheet.create({
     marginTop: 40, // Position below the filter button
   },
   menuItemContent: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    width: '100%',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    width: "100%",
   },
   checkIcon: {
     marginLeft: 8,
   },
   headerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     marginBottom: 8,
     gap: 12,
   },
   searchBar: {
     flex: 1,
-    backgroundColor: 'transparent',
+    backgroundColor: "transparent",
   },
 });

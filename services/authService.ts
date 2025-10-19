@@ -1,9 +1,14 @@
-import { AuthTokens, LoginRequest, RegisterRequest } from '@/types';
-import { apiService } from './api';
+import { AuthTokens, LoginRequest, RegisterRequest } from "@/types";
+import { apiService } from "./api";
 
 export class AuthService {
-  async login(credentials: LoginRequest): Promise<{ email: string; tokens: AuthTokens }> {
-    const response = await apiService.post<AuthTokens>('/auth/login', credentials);
+  async login(
+    credentials: LoginRequest
+  ): Promise<{ email: string; tokens: AuthTokens }> {
+    const response = await apiService.post<AuthTokens>(
+      "/auth/login",
+      credentials
+    );
 
     if (response.status >= 200 && response.status < 300) {
       // Handle different response formats
@@ -21,15 +26,18 @@ export class AuthService {
       return { email: credentials.email, tokens };
     }
 
-    throw new Error(response.data.error || 'Login failed');
+    throw new Error(response.data.error || "Login failed");
   }
 
-  async register(userData: RegisterRequest): Promise<{ email: string; tokens: AuthTokens }> {
+  async register(
+    userData: RegisterRequest
+  ): Promise<{ email: string; tokens: AuthTokens }> {
     // Step 1: Register the user
-    const registerResponse = await apiService.post('/auth/register', userData);
+    console.log("Trying to register user with data: ", userData);
+    const registerResponse = await apiService.post("/auth/register", userData);
 
     if (registerResponse.status >= 200 && registerResponse.status < 300) {
-      console.log('Registration successful, now logging in...');
+      console.log("Registration successful, now logging in...");
 
       // Step 2: Log in the user with the same credentials
       const loginCredentials: LoginRequest = {
@@ -37,7 +45,10 @@ export class AuthService {
         password: userData.password,
       };
 
-      const loginResponse = await apiService.post<AuthTokens>('/auth/login', loginCredentials);
+      const loginResponse = await apiService.post<AuthTokens>(
+        "/auth/login",
+        loginCredentials
+      );
 
       if (loginResponse.status >= 200 && loginResponse.status < 300) {
         // Handle different response formats for login
@@ -54,11 +65,13 @@ export class AuthService {
         await apiService.setTokens(tokens, userData.email);
         return { email: userData.email, tokens };
       } else {
-        throw new Error(loginResponse.data.error || 'Auto-login failed after registration');
+        throw new Error(
+          loginResponse.data.error || "Auto-login failed after registration"
+        );
       }
     }
 
-    throw new Error(registerResponse.data.error || 'Registration failed');
+    throw new Error(registerResponse.data.error || "Registration failed");
   }
 
   async logout(): Promise<void> {
@@ -67,7 +80,7 @@ export class AuthService {
       // No backend logout endpoint is needed
       await apiService.clearTokens();
     } catch (error) {
-      console.error('Logout error:', error);
+      console.error("Logout error:", error);
       throw error;
     }
   }
@@ -75,10 +88,10 @@ export class AuthService {
   async refreshTokens(): Promise<AuthTokens> {
     const tokens = apiService.getTokens();
     if (!tokens?.refresh_token) {
-      throw new Error('No refresh token available');
+      throw new Error("No refresh token available");
     }
 
-    const response = await apiService.post<AuthTokens>('/auth/refresh', {
+    const response = await apiService.post<AuthTokens>("/auth/refresh", {
       refresh_token: tokens.refresh_token,
     });
 
@@ -98,7 +111,7 @@ export class AuthService {
       return newTokens;
     }
 
-    throw new Error('Token refresh failed');
+    throw new Error("Token refresh failed");
   }
 
   isAuthenticated(): boolean {

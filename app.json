@@ -50,7 +50,8 @@
           }
         }
       ],
-      "expo-speech-recognition"
+      "expo-speech-recognition",
+      "expo-localization"
     ],
     "experiments": {
       "typedRoutes": true,

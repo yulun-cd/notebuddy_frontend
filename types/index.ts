@@ -2,8 +2,21 @@ export interface User {
   id: string;
   email: string;
   name?: string;
+  first_name?: string;
+  last_name?: string;
+  nick_name?: string;
+  language?: string;
+  gender?: "Male" | "Female" | null;
   created_at: string;
   updated_at: string;
+}
+
+export interface UserProfile {
+  first_name?: string;
+  last_name?: string;
+  nick_name?: string;
+  language?: string;
+  gender?: "Male" | "Female" | null;
 }
 
 export interface Transcript {
@@ -40,7 +53,11 @@ export interface LoginRequest {
 export interface RegisterRequest {
   email: string;
   password: string;
-  name?: string;
+  first_name: string;
+  last_name: string;
+  language: string;
+  nick_name?: string | null;
+  gender?: "Male" | "Female" | null;
 }
 
 export interface ApiResponse<T> {

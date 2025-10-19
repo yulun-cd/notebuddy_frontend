@@ -1,19 +1,22 @@
-import { ApiResponse, AuthTokens } from '@/types';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import axios, { AxiosInstance, AxiosResponse } from 'axios';
+import { ApiResponse, AuthTokens } from "@/types";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import axios, { AxiosInstance, AxiosResponse } from "axios";
 
-const API_BASE_URL = 'http://127.0.0.1:8000';
+const API_BASE_URL = `${process.env.BASE_URL}`;
+console.log("API_BASE_URL:", API_BASE_URL);
 
 class ApiService {
   private client: AxiosInstance;
   private tokens: AuthTokens | null = null;
-  private authStatusChangeCallback: ((isAuthenticated: boolean) => void) | null = null;
+  private authStatusChangeCallback:
+    | ((isAuthenticated: boolean) => void)
+    | null = null;
 
   constructor() {
     this.client = axios.create({
       baseURL: API_BASE_URL,
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
     });
 
@@ -33,21 +36,23 @@ class ApiService {
 
   private async loadTokens() {
     try {
-      const tokens = await AsyncStorage.getItem('auth_tokens');
+      const tokens = await AsyncStorage.getItem("auth_tokens");
       if (tokens) {
         this.tokens = JSON.parse(tokens);
         this.setAuthorizationHeader();
       }
     } catch (error) {
-      console.error('Failed to load tokens:', error);
+      console.error("Failed to load tokens:", error);
     }
   }
 
   private setAuthorizationHeader() {
     if (this.tokens?.access_token) {
-      this.client.defaults.headers.common['Authorization'] = `Bearer ${this.tokens.access_token}`;
+      this.client.defaults.headers.common[
+        "Authorization"
+      ] = `Bearer ${this.tokens.access_token}`;
     } else {
-      delete this.client.defaults.headers.common['Authorization'];
+      delete this.client.defaults.headers.common["Authorization"];
     }
   }
 
@@ -58,9 +63,11 @@ class ApiService {
         const originalRequest = error.config;
 
         // Handle both 401 (Unauthorized) and 403 (Forbidden) errors for token refresh
-        if ((error.response?.status === 401 || error.response?.status === 403) &&
-            !originalRequest._retry &&
-            this.tokens?.refresh_token) {
+        if (
+          (error.response?.status === 401 || error.response?.status === 403) &&
+          !originalRequest._retry &&
+          this.tokens?.refresh_token
+        ) {
           originalRequest._retry = true;
 
           try {
@@ -70,7 +77,10 @@ class ApiService {
 
             if (response.status > 299) {
               // clear tokens and notify auth status change, let the user log in again
-              console.log("Refresh token request failed with status:", response.status);
+              console.log(
+                "Refresh token request failed with status:",
+                response.status
+              );
               await this.clearTokens();
               this.notifyAuthStatusChange(false);
               return Promise.reject(error);
@@ -79,7 +89,9 @@ class ApiService {
             await this.setTokens(newTokens);
 
             // Update the authorization header for the retry
-            originalRequest.headers['Authorization'] = `Bearer ${newTokens.access_token}`;
+            originalRequest.headers[
+              "Authorization"
+            ] = `Bearer ${newTokens.access_token}`;
             return this.client(originalRequest);
           } catch (refreshError) {
             await this.clearTokens();
@@ -98,25 +110,25 @@ class ApiService {
     this.tokens = tokens;
     this.setAuthorizationHeader();
     if (tokens) {
-      await AsyncStorage.setItem('auth_tokens', JSON.stringify(tokens));
+      await AsyncStorage.setItem("auth_tokens", JSON.stringify(tokens));
     }
     if (email) {
-      await AsyncStorage.setItem('user_email', email);
+      await AsyncStorage.setItem("user_email", email);
     }
   }
 
   async clearTokens() {
     this.tokens = null;
     this.setAuthorizationHeader();
-    await AsyncStorage.removeItem('auth_tokens');
-    await AsyncStorage.removeItem('user_email');
+    await AsyncStorage.removeItem("auth_tokens");
+    await AsyncStorage.removeItem("user_email");
   }
 
   async getStoredEmail(): Promise<string | null> {
     try {
-      return await AsyncStorage.getItem('user_email');
+      return await AsyncStorage.getItem("user_email");
     } catch (error) {
-      console.error('Failed to get stored email:', error);
+      console.error("Failed to get stored email:", error);
       return null;
     }
   }
@@ -125,19 +137,31 @@ class ApiService {
     return this.tokens;
   }
 
-  async get<T>(url: string, params?: any): Promise<AxiosResponse<ApiResponse<T>>> {
+  async get<T>(
+    url: string,
+    params?: any
+  ): Promise<AxiosResponse<ApiResponse<T>>> {
     return this.client.get(url, { params });
   }
 
-  async post<T>(url: string, data?: any): Promise<AxiosResponse<ApiResponse<T>>> {
+  async post<T>(
+    url: string,
+    data?: any
+  ): Promise<AxiosResponse<ApiResponse<T>>> {
     return this.client.post(url, data);
   }
 
-  async put<T>(url: string, data?: any): Promise<AxiosResponse<ApiResponse<T>>> {
+  async put<T>(
+    url: string,
+    data?: any
+  ): Promise<AxiosResponse<ApiResponse<T>>> {
     return this.client.put(url, data);
   }
 
-  async patch<T>(url: string, data?: any): Promise<AxiosResponse<ApiResponse<T>>> {
+  async patch<T>(
+    url: string,
+    data?: any
+  ): Promise<AxiosResponse<ApiResponse<T>>> {
     return this.client.patch(url, data);
   }
 
