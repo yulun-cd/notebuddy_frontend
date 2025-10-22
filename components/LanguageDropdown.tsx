@@ -1,90 +1,82 @@
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
-import { AntDesign } from "@expo/vector-icons";
 import React, { useState } from "react";
-import { useTranslation } from "react-i18next";
 import { Modal, StyleSheet, TouchableOpacity, View } from "react-native";
 
-interface GenderDropdownProps {
-  value: "Male" | "Female" | null;
-  onChange: (value: "Male" | "Female" | null) => void;
+interface LanguageDropdownProps {
+  value: string;
+  onChange: (language: string) => void;
   placeholder?: string;
 }
 
-export const GenderDropdown: React.FC<GenderDropdownProps> = ({
+export const LanguageDropdown: React.FC<LanguageDropdownProps> = ({
   value,
   onChange,
-  placeholder,
+  placeholder = "Select language",
 }) => {
-  const { t } = useTranslation();
-  const [modalVisible, setModalVisible] = useState(false);
+  const [isModalVisible, setIsModalVisible] = useState(false);
 
-  const GENDER_OPTIONS = [
-    { label: t("gender.notSet"), value: null },
-    { label: t("gender.male"), value: "Male" as const },
-    { label: t("gender.female"), value: "Female" as const },
+  const languages = [
+    { code: "en", name: "English" },
+    { code: "zh", name: "中文" },
   ];
 
-  const defaultPlaceholder = t("gender.select");
-
-  const handleSelect = (selectedValue: "Male" | "Female" | null) => {
-    onChange(selectedValue);
-    setModalVisible(false);
+  const getDisplayValue = () => {
+    if (!value) return placeholder;
+    const language = languages.find((lang) => lang.code === value);
+    return language ? language.name : placeholder;
   };
 
-  const getDisplayValue = () => {
-    const selectedOption = GENDER_OPTIONS.find(
-      (option) => option.value === value
-    );
-    return selectedOption
-      ? selectedOption.label
-      : placeholder || defaultPlaceholder;
+  const handleLanguageSelect = (languageCode: string) => {
+    onChange(languageCode);
+    setIsModalVisible(false);
   };
 
   return (
     <View>
       <TouchableOpacity
         style={styles.dropdownButton}
-        onPress={() => setModalVisible(true)}
+        onPress={() => setIsModalVisible(true)}
       >
         <ThemedText type="default" style={styles.dropdownText}>
           {getDisplayValue()}
         </ThemedText>
-        <AntDesign name="down" size={16} color="#666" />
       </TouchableOpacity>
 
       <Modal
-        visible={modalVisible}
-        transparent={true}
+        visible={isModalVisible}
+        transparent
         animationType="fade"
-        onRequestClose={() => setModalVisible(false)}
+        onRequestClose={() => setIsModalVisible(false)}
       >
         <TouchableOpacity
           style={styles.modalOverlay}
           activeOpacity={1}
-          onPress={() => setModalVisible(false)}
+          onPress={() => setIsModalVisible(false)}
         >
           <ThemedView style={styles.modalContent}>
-            {GENDER_OPTIONS.map((option) => (
+            {languages.map((language) => (
               <TouchableOpacity
-                key={option.label}
+                key={language.code}
                 style={[
                   styles.option,
-                  value === option.value && styles.selectedOption,
+                  value === language.code && styles.selectedOption,
                 ]}
-                onPress={() => handleSelect(option.value)}
+                onPress={() => handleLanguageSelect(language.code)}
               >
                 <ThemedText
                   type="default"
                   style={[
                     styles.optionText,
-                    value === option.value && styles.selectedOptionText,
+                    value === language.code && styles.selectedOptionText,
                   ]}
                 >
-                  {option.label}
+                  {language.name}
                 </ThemedText>
-                {value === option.value && (
-                  <AntDesign name="check" size={16} color="#007AFF" />
+                {value === language.code && (
+                  <ThemedText type="default" style={styles.checkmark}>
+                    ✓
+                  </ThemedText>
                 )}
               </TouchableOpacity>
             ))}
@@ -97,20 +89,17 @@ export const GenderDropdown: React.FC<GenderDropdownProps> = ({
 
 const styles = StyleSheet.create({
   dropdownButton: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
     backgroundColor: "white",
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 6,
     borderWidth: 1,
     borderColor: "#ddd",
+    minHeight: 40,
+    justifyContent: "center",
   },
   dropdownText: {
     fontSize: 14,
-    color: "#333",
   },
   modalOverlay: {
     flex: 1,
@@ -124,14 +113,6 @@ const styles = StyleSheet.create({
     padding: 16,
     width: "80%",
     maxWidth: 300,
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
   },
   option: {
     flexDirection: "row",
@@ -139,18 +120,21 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingVertical: 12,
     paddingHorizontal: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: "#f0f0f0",
+    borderRadius: 6,
   },
   selectedOption: {
     backgroundColor: "rgba(0, 122, 255, 0.1)",
   },
   optionText: {
     fontSize: 16,
-    color: "#333",
   },
   selectedOptionText: {
     color: "#007AFF",
     fontWeight: "600",
+  },
+  checkmark: {
+    color: "#007AFF",
+    fontSize: 16,
+    fontWeight: "bold",
   },
 });

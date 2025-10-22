@@ -1,10 +1,12 @@
 import { GenderDropdown } from "@/components/GenderDropdown";
+import { LanguageDropdown } from "@/components/LanguageDropdown";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { useAuth } from "@/contexts/AuthContext";
 import { getLocales } from "expo-localization";
 import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Alert,
   KeyboardAvoidingView,
@@ -17,6 +19,7 @@ import {
 } from "react-native";
 
 export default function RegisterScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
   const { register, isLoading } = useAuth();
 
@@ -47,20 +50,20 @@ export default function RegisterScreen() {
       !lastName.trim() ||
       !language.trim()
     ) {
-      Alert.alert("错误", "请填写所有必填字段");
+      Alert.alert(t("common.error"), t("validation.required"));
       return;
     }
 
     // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email.trim())) {
-      Alert.alert("错误", "请输入有效的邮箱地址");
+      Alert.alert(t("common.error"), t("validation.email"));
       return;
     }
 
     // Validate password length
     // if (password.length < 6) {
-    //   Alert.alert("错误", "密码至少需要6个字符");
+    //   Alert.alert(t("common.error"), t("validation.passwordLength"));
     //   return;
     // }
 
@@ -78,8 +81,9 @@ export default function RegisterScreen() {
       console.log("Register successful");
       router.replace("/home");
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "注册失败";
-      Alert.alert("错误", errorMessage);
+      const errorMessage =
+        error instanceof Error ? error.message : t("error.unknown");
+      Alert.alert(t("common.error"), errorMessage);
     }
   };
 
@@ -107,10 +111,10 @@ export default function RegisterScreen() {
         >
           <View style={styles.header}>
             <ThemedText type="title" style={styles.title}>
-              语记
+              NoteBuddy
             </ThemedText>
             <ThemedText type="subtitle" style={styles.subtitle}>
-              创建账户
+              {t("auth.register")}
             </ThemedText>
           </View>
 
@@ -118,13 +122,14 @@ export default function RegisterScreen() {
             {/* Mandatory Fields */}
             <View style={styles.inputGroup}>
               <ThemedText type="defaultSemiBold" style={styles.label}>
-                邮箱 <ThemedText style={styles.required}>*</ThemedText>
+                {t("auth.email")}{" "}
+                <ThemedText style={styles.required}>*</ThemedText>
               </ThemedText>
               <TextInput
                 style={styles.textInput}
                 value={email}
                 onChangeText={setEmail}
-                placeholder="请输入您的邮箱"
+                placeholder={t("auth.email")}
                 placeholderTextColor="#999"
                 keyboardType="email-address"
                 autoCapitalize="none"
@@ -135,13 +140,14 @@ export default function RegisterScreen() {
 
             <View style={styles.inputGroup}>
               <ThemedText type="defaultSemiBold" style={styles.label}>
-                密码 <ThemedText style={styles.required}>*</ThemedText>
+                {t("auth.password")}{" "}
+                <ThemedText style={styles.required}>*</ThemedText>
               </ThemedText>
               <TextInput
                 style={styles.textInput}
                 value={password}
                 onChangeText={setPassword}
-                placeholder="请输入您的密码（至少6个字符）"
+                placeholder={t("auth.password")}
                 placeholderTextColor="#999"
                 secureTextEntry
                 autoCapitalize="none"
@@ -151,13 +157,14 @@ export default function RegisterScreen() {
 
             <View style={styles.inputGroup}>
               <ThemedText type="defaultSemiBold" style={styles.label}>
-                名字 <ThemedText style={styles.required}>*</ThemedText>
+                {t("profile.firstName")}{" "}
+                <ThemedText style={styles.required}>*</ThemedText>
               </ThemedText>
               <TextInput
                 style={styles.textInput}
                 value={firstName}
                 onChangeText={setFirstName}
-                placeholder="请输入您的名字"
+                placeholder={t("profile.firstName")}
                 placeholderTextColor="#999"
                 autoCapitalize="words"
                 autoCorrect={false}
@@ -166,13 +173,14 @@ export default function RegisterScreen() {
 
             <View style={styles.inputGroup}>
               <ThemedText type="defaultSemiBold" style={styles.label}>
-                姓氏 <ThemedText style={styles.required}>*</ThemedText>
+                {t("profile.lastName")}{" "}
+                <ThemedText style={styles.required}>*</ThemedText>
               </ThemedText>
               <TextInput
                 style={styles.textInput}
                 value={lastName}
                 onChangeText={setLastName}
-                placeholder="请输入您的姓氏"
+                placeholder={t("profile.lastName")}
                 placeholderTextColor="#999"
                 autoCapitalize="words"
                 autoCorrect={false}
@@ -181,32 +189,29 @@ export default function RegisterScreen() {
 
             <View style={styles.inputGroup}>
               <ThemedText type="defaultSemiBold" style={styles.label}>
-                语言 <ThemedText style={styles.required}>*</ThemedText>
+                {t("profile.language")}{" "}
+                <ThemedText style={styles.required}>*</ThemedText>
               </ThemedText>
-              <TextInput
-                style={styles.textInput}
+              <LanguageDropdown
                 value={language}
-                onChangeText={setLanguage}
-                placeholder="请输入您的语言"
-                placeholderTextColor="#999"
-                autoCapitalize="none"
-                autoCorrect={false}
+                onChange={setLanguage}
+                placeholder={t("language.select")}
               />
               <ThemedText type="default" style={styles.hint}>
-                检测到的设备语言: {deviceLanguage}
+                {t("language.detected")}: {deviceLanguage}
               </ThemedText>
             </View>
 
             {/* Optional Fields */}
             <View style={styles.inputGroup}>
               <ThemedText type="defaultSemiBold" style={styles.label}>
-                昵称（可选）
+                {t("profile.nickName")}
               </ThemedText>
               <TextInput
                 style={styles.textInput}
                 value={nickName}
                 onChangeText={setNickName}
-                placeholder="请输入您的昵称（可选）"
+                placeholder={t("profile.nickName")}
                 placeholderTextColor="#999"
                 autoCapitalize="words"
                 autoCorrect={false}
@@ -215,12 +220,12 @@ export default function RegisterScreen() {
 
             <View style={styles.inputGroup}>
               <ThemedText type="defaultSemiBold" style={styles.label}>
-                性别（可选）
+                {t("profile.gender")}
               </ThemedText>
               <GenderDropdown
                 value={gender}
                 onChange={setGender}
-                placeholder="请选择性别（可选）"
+                placeholder={t("gender.select")}
               />
             </View>
 
@@ -236,7 +241,7 @@ export default function RegisterScreen() {
                 type="defaultSemiBold"
                 style={styles.submitButtonText}
               >
-                {isLoading ? "请稍候..." : "创建账户"}
+                {isLoading ? t("common.loading") : t("auth.register")}
               </ThemedText>
             </TouchableOpacity>
 
@@ -246,7 +251,7 @@ export default function RegisterScreen() {
               disabled={isLoading}
             >
               <ThemedText type="default" style={styles.switchModeText}>
-                已有账户？登录
+                {t("auth.haveAccount")} {t("auth.login")}
               </ThemedText>
             </TouchableOpacity>
           </View>

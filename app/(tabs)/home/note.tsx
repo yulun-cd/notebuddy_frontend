@@ -1,11 +1,12 @@
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { useNotes } from '@/contexts/NotesContext';
-import { notesService } from '@/services/notesService';
-import { Ionicons } from '@expo/vector-icons';
-import { useFocusEffect, usePreventRemove } from '@react-navigation/native';
-import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
-import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { ThemedText } from "@/components/themed-text";
+import { ThemedView } from "@/components/themed-view";
+import { useNotes } from "@/contexts/NotesContext";
+import { notesService } from "@/services/notesService";
+import { Ionicons } from "@expo/vector-icons";
+import { useFocusEffect, usePreventRemove } from "@react-navigation/native";
+import { useLocalSearchParams, useNavigation, useRouter } from "expo-router";
+import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
   Alert,
@@ -13,17 +14,18 @@ import {
   StyleSheet,
   TextInput,
   TouchableOpacity,
-  View
-} from 'react-native';
-import { Menu, MenuItem } from 'react-native-material-menu';
+  View,
+} from "react-native";
+import { Menu, MenuItem } from "react-native-material-menu";
 
 export default function NoteDetailScreen() {
+  const { t, i18n } = useTranslation();
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const navigation = useNavigation();
   const { currentNote, isLoading, error, loadNote, updateNote } = useNotes();
-  const [editedTitle, setEditedTitle] = useState('');
-  const [editedContent, setEditedContent] = useState('');
+  const [editedTitle, setEditedTitle] = useState("");
+  const [editedContent, setEditedContent] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [questions, setQuestions] = useState<string[]>([]);
@@ -56,7 +58,7 @@ export default function NoteDetailScreen() {
           style={styles.menuStyle}
         >
           <MenuItem onPress={handleViewTranscript}>
-            View Original Transcript
+            {t("note.viewTranscript")}
           </MenuItem>
         </Menu>
       ),
@@ -113,8 +115,9 @@ export default function NoteDetailScreen() {
 
       setHasUnsavedChanges(false);
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to update note';
-      Alert.alert('Error', errorMessage);
+      const errorMessage =
+        err instanceof Error ? err.message : t("note.updateError");
+      Alert.alert(t("common.error"), errorMessage);
     } finally {
       setIsSaving(false);
     }
@@ -136,15 +139,21 @@ export default function NoteDetailScreen() {
     try {
       setIsGeneratingQuestions(true);
       setQuestionsError(null);
-      const generatedQuestions = await notesService.generateQuestions(currentNote.id);
+      const generatedQuestions = await notesService.generateQuestions(
+        currentNote.id
+      );
       setQuestions(generatedQuestions);
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to generate questions';
+      const errorMessage =
+        err instanceof Error ? err.message : t("note.generateQuestionsError");
       setQuestionsError(errorMessage);
-      Alert.alert('Error', errorMessage);
+      Alert.alert(t("common.error"), errorMessage);
     } finally {
       setIsGeneratingQuestions(false);
-      Alert.alert('Questions Generated', 'New questions have been generated. Scroll to the bottom to view them.', );
+      Alert.alert(
+        t("note.questionsGenerated"),
+        t("note.questionsGeneratedMessage")
+      );
     }
   };
 
@@ -152,7 +161,11 @@ export default function NoteDetailScreen() {
     if (!currentNote) return;
 
     // Navigate to the answering screen with the question and note_id
-    router.push(`/home/answer?note_id=${currentNote.id}&question=${encodeURIComponent(question)}`);
+    router.push(
+      `/home/answer?note_id=${currentNote.id}&question=${encodeURIComponent(
+        question
+      )}`
+    );
   };
 
   const handleViewTranscript = () => {
@@ -160,38 +173,34 @@ export default function NoteDetailScreen() {
 
     // Check for unsaved changes before navigating
     if (hasUnsavedChanges) {
-      Alert.alert(
-        'Unsaved Changes',
-        'You have unsaved changes. Do you want to discard them?',
-        [
-          {
-            text: "Don't leave",
-            style: 'cancel',
-            onPress: () => {
-              // User stays on the note screen
-            },
+      Alert.alert(t("alert.unsavedChanges"), t("alert.discardMessage"), [
+        {
+          text: t("common.dontLeave"),
+          style: "cancel",
+          onPress: () => {
+            // User stays on the note screen
           },
-          {
-            text: 'Discard',
-            style: 'destructive',
-            onPress: () => {
-              // Discard changes and navigate to transcript
-              setHasUnsavedChanges(false);
-              if (transcriptId) {
-                router.push(`/home/transcript?id=${transcriptId}`);
-              } else {
-                Alert.alert('Error', 'No transcript found for this note');
-              }
-            },
+        },
+        {
+          text: t("common.discard"),
+          style: "destructive",
+          onPress: () => {
+            // Discard changes and navigate to transcript
+            setHasUnsavedChanges(false);
+            if (transcriptId) {
+              router.push(`/home/transcript?id=${transcriptId}`);
+            } else {
+              Alert.alert(t("common.error"), t("note.noTranscript"));
+            }
           },
-        ]
-      );
+        },
+      ]);
     } else {
       // No unsaved changes, navigate directly
       if (transcriptId) {
         router.push(`/home/transcript?id=${transcriptId}`);
       } else {
-        Alert.alert('Error', 'No transcript found for this note');
+        Alert.alert(t("common.error"), t("note.noTranscript"));
       }
     }
   };
@@ -203,43 +212,39 @@ export default function NoteDetailScreen() {
     }
 
     // Show confirmation dialog
-    Alert.alert(
-      'Unsaved Changes',
-      'You have unsaved changes. Do you want to discard them?',
-      [
-        {
-          text: "Don't leave",
-          style: 'cancel',
-          onPress: () => {
-            // Navigation is automatically prevented by usePreventRemove
-            // User stays on the note screen
-          },
+    Alert.alert(t("alert.unsavedChanges"), t("alert.discardMessage"), [
+      {
+        text: t("common.dontLeave"),
+        style: "cancel",
+        onPress: () => {
+          // Navigation is automatically prevented by usePreventRemove
+          // User stays on the note screen
         },
-        {
-          text: 'Discard',
-          style: 'destructive',
-          onPress: () => {
-            // Discard changes and navigate back immediately
-            setHasUnsavedChanges(false);
-            // Use setTimeout to ensure state update happens before navigation
-            setTimeout(() => {
-              router.back();
-            }, 0);
-          },
+      },
+      {
+        text: t("common.discard"),
+        style: "destructive",
+        onPress: () => {
+          // Discard changes and navigate back immediately
+          setHasUnsavedChanges(false);
+          // Use setTimeout to ensure state update happens before navigation
+          setTimeout(() => {
+            router.back();
+          }, 0);
         },
-      ]
-    );
+      },
+    ]);
   });
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
+    return date.toLocaleDateString(i18n.language, {
+      weekday: "long",
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
     });
   };
 
@@ -249,7 +254,7 @@ export default function NoteDetailScreen() {
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" />
           <ThemedText type="default" style={styles.loadingText}>
-            Loading note...
+            {t("common.loading")}
           </ThemedText>
         </View>
       </ThemedView>
@@ -261,13 +266,10 @@ export default function NoteDetailScreen() {
       <ThemedView style={styles.container}>
         <View style={styles.errorContainer}>
           <ThemedText type="title" style={styles.errorTitle}>
-            {error || 'Note not found'}
+            {error || t("note.notFound")}
           </ThemedText>
           <ThemedText type="default" style={styles.errorText}>
-            {error
-              ? 'There was a problem loading this note.'
-              : 'The note you are looking for does not exist.'
-            }
+            {error ? t("note.loadError") : t("note.notExist")}
           </ThemedText>
         </View>
       </ThemedView>
@@ -288,21 +290,21 @@ export default function NoteDetailScreen() {
             value={editedTitle}
             onChangeText={handleTitleChange}
             onBlur={handleTitleBlur}
-            placeholder="Enter note title"
+            placeholder={t("note.titlePlaceholder")}
             multiline
             editable={!isSaving && !isGeneratingQuestions}
           />
           <ThemedText type="default" style={styles.date}>
-            Created {formatDate(currentNote.created_at)}
-            {'\n'}
-            {hasUnsavedChanges && ' • Unsaved changes'}
-            {isSaving && ' • Saving...'}
+            {t("note.created")} {formatDate(currentNote.created_at)}
+            {"\n"}
+            {hasUnsavedChanges && ` • ${t("note.unsavedChanges")}`}
+            {isSaving && ` • ${t("note.saving")}`}
           </ThemedText>
         </View>
 
         <View style={styles.contentSection}>
           <ThemedText type="subtitle" style={styles.sectionTitle}>
-            Content
+            {t("note.content")}
           </ThemedText>
           <TextInput
             ref={contentInputRef}
@@ -310,7 +312,7 @@ export default function NoteDetailScreen() {
             value={editedContent}
             onChangeText={handleContentChange}
             onBlur={handleContentBlur}
-            placeholder="Enter note content"
+            placeholder={t("note.contentPlaceholder")}
             multiline
             textAlignVertical="top"
             editable={!isSaving && !isGeneratingQuestions}
@@ -320,7 +322,7 @@ export default function NoteDetailScreen() {
         {questions.length > 0 && (
           <View style={styles.questionsSection}>
             <ThemedText type="subtitle" style={styles.sectionTitle}>
-              Generated Questions
+              {t("note.generatedQuestions")}
             </ThemedText>
             {questionsError && (
               <ThemedText type="default" style={styles.errorText}>
@@ -345,40 +347,40 @@ export default function NoteDetailScreen() {
       </ScrollView>
 
       <View style={styles.bottomActions}>
-          <TouchableOpacity
-            style={[
-              styles.actionButton,
-              styles.saveButton,
-              (isSaving||!hasUnsavedChanges) && styles.disabledButton
-            ]}
-            onPress={saveChanges}
-            disabled={(isSaving||!hasUnsavedChanges)}
-          >
-            {isSaving ? (
-              <ActivityIndicator size="small" color="white" />
-            ) : (
-              <ThemedText type="defaultSemiBold" style={styles.actionButtonText}>
-                Save Changes
-              </ThemedText>
-            )}
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[
-              styles.actionButton,
-              styles.generateQuestionsButton,
-              (isSaving || isGeneratingQuestions) && styles.disabledButton
-            ]}
-            onPress={generateQuestions}
-            disabled={isSaving || isGeneratingQuestions}
-          >
-            {isGeneratingQuestions ? (
-              <ActivityIndicator size="small" color="white" />
-            ) : (
-              <ThemedText type="defaultSemiBold" style={styles.actionButtonText}>
-                Generate Questions
-              </ThemedText>
-            )}
-          </TouchableOpacity>
+        <TouchableOpacity
+          style={[
+            styles.actionButton,
+            styles.saveButton,
+            (isSaving || !hasUnsavedChanges) && styles.disabledButton,
+          ]}
+          onPress={saveChanges}
+          disabled={isSaving || !hasUnsavedChanges}
+        >
+          {isSaving ? (
+            <ActivityIndicator size="small" color="white" />
+          ) : (
+            <ThemedText type="defaultSemiBold" style={styles.actionButtonText}>
+              {t("note.saveChanges")}
+            </ThemedText>
+          )}
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[
+            styles.actionButton,
+            styles.generateQuestionsButton,
+            (isSaving || isGeneratingQuestions) && styles.disabledButton,
+          ]}
+          onPress={generateQuestions}
+          disabled={isSaving || isGeneratingQuestions}
+        >
+          {isGeneratingQuestions ? (
+            <ActivityIndicator size="small" color="white" />
+          ) : (
+            <ThemedText type="defaultSemiBold" style={styles.actionButtonText}>
+              {t("note.generateQuestions")}
+            </ThemedText>
+          )}
+        </TouchableOpacity>
       </View>
     </ThemedView>
   );
@@ -397,8 +399,8 @@ const styles = StyleSheet.create({
   },
   loadingContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     gap: 16,
   },
   loadingText: {
@@ -406,16 +408,16 @@ const styles = StyleSheet.create({
   },
   errorContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     paddingHorizontal: 32,
   },
   errorTitle: {
     marginBottom: 8,
-    textAlign: 'center',
+    textAlign: "center",
   },
   errorText: {
-    textAlign: 'center',
+    textAlign: "center",
     opacity: 0.7,
   },
   header: {
@@ -425,10 +427,10 @@ const styles = StyleSheet.create({
     fontSize: 24,
     marginBottom: 8,
     borderWidth: 1,
-    borderColor: '#ccc',
+    borderColor: "#ccc",
     borderRadius: 8,
     padding: 12,
-    backgroundColor: 'white',
+    backgroundColor: "white",
   },
   date: {
     fontSize: 14,
@@ -450,49 +452,49 @@ const styles = StyleSheet.create({
     fontSize: 16,
     lineHeight: 24,
     borderWidth: 1,
-    borderColor: '#ccc',
+    borderColor: "#ccc",
     borderRadius: 8,
     padding: 12,
-    backgroundColor: 'white',
+    backgroundColor: "white",
     flex: 1,
-    textAlignVertical: 'top',
+    textAlignVertical: "top",
   },
   actions: {
     marginTop: 24,
   },
   bottomActions: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     padding: 16,
     paddingBottom: 32,
-    backgroundColor: 'white',
+    backgroundColor: "white",
     borderTopWidth: 1,
-    borderTopColor: '#e0e0e0',
+    borderTopColor: "#e0e0e0",
     gap: 12,
   },
   actionButton: {
     paddingVertical: 12,
     paddingHorizontal: 0,
     borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     flex: 1,
     minHeight: 44,
   },
   actionButtonText: {
-    color: 'white',
+    color: "white",
     fontSize: 16,
   },
   saveButton: {
-    backgroundColor: '#18612aff',
+    backgroundColor: "#18612aff",
   },
   disabledButton: {
-    backgroundColor: '#C7C7CC',
+    backgroundColor: "#C7C7CC",
     opacity: 0.6,
   },
   generateQuestionsButton: {
-    backgroundColor: '#28266dff',
+    backgroundColor: "#28266dff",
   },
   questionsSection: {
     marginBottom: 24,
@@ -501,9 +503,9 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   questionItem: {
-    backgroundColor: 'rgba(88, 86, 214, 0.1)',
+    backgroundColor: "rgba(88, 86, 214, 0.1)",
     borderWidth: 1,
-    borderColor: 'rgba(88, 86, 214, 0.2)',
+    borderColor: "rgba(88, 86, 214, 0.2)",
     borderRadius: 8,
     padding: 12,
   },

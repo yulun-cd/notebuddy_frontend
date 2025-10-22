@@ -1,7 +1,8 @@
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { useSpeechRecognition } from '@/hooks/useSpeechRecognition';
-import React from 'react';
+import { ThemedText } from "@/components/themed-text";
+import { ThemedView } from "@/components/themed-view";
+import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
+import React from "react";
+import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
   Alert,
@@ -9,7 +10,7 @@ import {
   TextInput,
   TouchableOpacity,
   View,
-} from 'react-native';
+} from "react-native";
 
 interface VoiceInputProps {
   value: string;
@@ -20,8 +21,9 @@ interface VoiceInputProps {
 export const VoiceInput: React.FC<VoiceInputProps> = ({
   value,
   onChangeText,
-  placeholder = 'Enter text or use voice input...',
+  placeholder = "Enter text or use voice input...",
 }) => {
+  const { t } = useTranslation();
   const {
     isRecording,
     isProcessing,
@@ -53,9 +55,9 @@ export const VoiceInput: React.FC<VoiceInputProps> = ({
   // Show error if any
   React.useEffect(() => {
     if (error) {
-      Alert.alert('Speech Recognition Error', error);
+      Alert.alert(t("voice.recognitionError"), error);
     }
-  }, [error]);
+  }, [error, t]);
 
   return (
     <ThemedView style={styles.container}>
@@ -89,14 +91,14 @@ export const VoiceInput: React.FC<VoiceInputProps> = ({
           </TouchableOpacity>
 
           <ThemedText type="default" style={styles.instructionText}>
-            {isRecording ? 'Listening...' : 'Tap to speak'}
+            {isRecording ? t("voice.listening") : t("voice.tapToSpeak")}
           </ThemedText>
         </View>
       </View>
 
       {isRecording && (
         <ThemedText type="default" style={styles.recordingIndicator}>
-          ● Recording in progress
+          ● {t("voice.recordingInProgress")}
         </ThemedText>
       )}
     </ThemedView>
@@ -108,8 +110,8 @@ const styles = StyleSheet.create({
     marginVertical: 16,
   },
   inputContainer: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
+    flexDirection: "row",
+    alignItems: "flex-start",
     gap: 12,
   },
   textInput: {
@@ -117,15 +119,15 @@ const styles = StyleSheet.create({
     fontSize: 16,
     lineHeight: 24,
     borderWidth: 1,
-    borderColor: '#ddd',
+    borderColor: "#ddd",
     borderRadius: 8,
     padding: 12,
-    backgroundColor: 'white',
+    backgroundColor: "white",
     minHeight: 120,
-    textAlignVertical: 'top',
+    textAlignVertical: "top",
   },
   voiceControls: {
-    alignItems: 'center',
+    alignItems: "center",
     gap: 8,
     paddingTop: 8,
   },
@@ -133,31 +135,31 @@ const styles = StyleSheet.create({
     width: 50,
     height: 50,
     borderRadius: 25,
-    backgroundColor: '#34C759',
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
+    backgroundColor: "#34C759",
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
     elevation: 5,
   },
   recordingButton: {
-    backgroundColor: '#FF3B30',
+    backgroundColor: "#FF3B30",
     transform: [{ scale: 1.1 }],
   },
   microphoneIcon: {
     fontSize: 20,
-    color: 'white',
+    color: "white",
   },
   instructionText: {
     fontSize: 12,
     opacity: 0.7,
-    textAlign: 'center',
+    textAlign: "center",
   },
   recordingIndicator: {
-    color: '#FF3B30',
-    fontWeight: 'bold',
+    color: "#FF3B30",
+    fontWeight: "bold",
     marginTop: 8,
     fontSize: 14,
   },

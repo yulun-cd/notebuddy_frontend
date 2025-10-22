@@ -3,6 +3,7 @@ import { ThemedView } from "@/components/themed-view";
 import { useAuth } from "@/contexts/AuthContext";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Alert,
   KeyboardAvoidingView,
@@ -15,6 +16,7 @@ import {
 } from "react-native";
 
 export default function LoginScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
   const { login, isLoading } = useAuth();
   const [email, setEmail] = useState("");
@@ -22,7 +24,7 @@ export default function LoginScreen() {
 
   const handleSubmit = async () => {
     if (!email.trim() || !password.trim()) {
-      Alert.alert("错误", "请填写所有必填字段");
+      Alert.alert(t("common.error"), t("validation.required"));
       return;
     }
 
@@ -30,8 +32,9 @@ export default function LoginScreen() {
       await login(email.trim(), password.trim());
       router.replace("/home");
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "认证失败";
-      Alert.alert("错误", errorMessage);
+      const errorMessage =
+        error instanceof Error ? error.message : t("error.unknown");
+      Alert.alert(t("common.error"), errorMessage);
     }
   };
 
@@ -52,23 +55,24 @@ export default function LoginScreen() {
         >
           <View style={styles.header}>
             <ThemedText type="title" style={styles.title}>
-              语记
+              NoteBuddy
             </ThemedText>
             <ThemedText type="subtitle" style={styles.subtitle}>
-              欢迎回来
+              {t("auth.login")}
             </ThemedText>
           </View>
 
           <View style={styles.form}>
             <View style={styles.inputGroup}>
               <ThemedText type="defaultSemiBold" style={styles.label}>
-                邮箱 <ThemedText style={styles.required}>*</ThemedText>
+                {t("auth.email")}{" "}
+                <ThemedText style={styles.required}>*</ThemedText>
               </ThemedText>
               <TextInput
                 style={styles.textInput}
                 value={email}
                 onChangeText={setEmail}
-                placeholder="请输入您的邮箱"
+                placeholder={t("auth.email")}
                 placeholderTextColor="#999"
                 keyboardType="email-address"
                 autoCapitalize="none"
@@ -79,13 +83,14 @@ export default function LoginScreen() {
 
             <View style={styles.inputGroup}>
               <ThemedText type="defaultSemiBold" style={styles.label}>
-                密码 <ThemedText style={styles.required}>*</ThemedText>
+                {t("auth.password")}{" "}
+                <ThemedText style={styles.required}>*</ThemedText>
               </ThemedText>
               <TextInput
                 style={styles.textInput}
                 value={password}
                 onChangeText={setPassword}
-                placeholder="请输入您的密码"
+                placeholder={t("auth.password")}
                 placeholderTextColor="#999"
                 secureTextEntry
                 autoCapitalize="none"
@@ -105,7 +110,7 @@ export default function LoginScreen() {
                 type="defaultSemiBold"
                 style={styles.submitButtonText}
               >
-                {isLoading ? "请稍候..." : "登录"}
+                {isLoading ? t("common.loading") : t("auth.login")}
               </ThemedText>
             </TouchableOpacity>
 
@@ -115,7 +120,7 @@ export default function LoginScreen() {
               disabled={isLoading}
             >
               <ThemedText type="default" style={styles.switchModeText}>
-                还没有账户？注册
+                {t("auth.noAccount")} {t("auth.register")}
               </ThemedText>
             </TouchableOpacity>
           </View>

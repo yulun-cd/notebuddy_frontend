@@ -1,9 +1,10 @@
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { VoiceInput } from '@/components/VoiceInput';
-import { useTranscripts } from '@/contexts/TranscriptsContext';
-import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
+import { ThemedText } from "@/components/themed-text";
+import { ThemedView } from "@/components/themed-view";
+import { VoiceInput } from "@/components/VoiceInput";
+import { useTranscripts } from "@/contexts/TranscriptsContext";
+import { useRouter } from "expo-router";
+import React, { useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Alert,
   KeyboardAvoidingView,
@@ -13,37 +14,35 @@ import {
   TextInput,
   TouchableOpacity,
   View,
-} from 'react-native';
+} from "react-native";
 
 export default function CreateTranscriptScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
   const { createTranscript } = useTranscripts();
-  const [title, setTitle] = useState('');
-  const [content, setContent] = useState('');
+  const [title, setTitle] = useState("");
+  const [content, setContent] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async () => {
     if (!title.trim() || !content.trim()) {
-      Alert.alert('Error', 'Please fill in both title and content');
+      Alert.alert(t("common.error"), t("transcript.fillRequired"));
       return;
     }
 
     setIsSubmitting(true);
     try {
       await createTranscript(title.trim(), content.trim());
-      Alert.alert(
-        'Success',
-        'Transcript created successfully!',
-        [
-          {
-            text: 'OK',
-            onPress: () => router.back(),
-          },
-        ]
-      );
+      Alert.alert(t("common.success"), t("transcript.createSuccess"), [
+        {
+          text: t("common.ok"),
+          onPress: () => router.back(),
+        },
+      ]);
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to create transcript';
-      Alert.alert('Error', errorMessage);
+      const errorMessage =
+        error instanceof Error ? error.message : t("transcript.createError");
+      Alert.alert(t("common.error"), errorMessage);
     } finally {
       setIsSubmitting(false);
     }
@@ -51,18 +50,14 @@ export default function CreateTranscriptScreen() {
 
   const handleCancel = () => {
     if (title.trim() || content.trim()) {
-      Alert.alert(
-        'Discard Changes',
-        'Are you sure you want to discard this transcript?',
-        [
-          { text: 'Keep Editing', style: 'cancel' },
-          {
-            text: 'Discard',
-            style: 'destructive',
-            onPress: () => router.back(),
-          },
-        ]
-      );
+      Alert.alert(t("alert.confirmDiscard"), t("alert.discardMessage"), [
+        { text: t("common.keepEditing"), style: "cancel" },
+        {
+          text: t("common.discard"),
+          style: "destructive",
+          onPress: () => router.back(),
+        },
+      ]);
     } else {
       router.back();
     }
@@ -72,7 +67,7 @@ export default function CreateTranscriptScreen() {
     <ThemedView style={styles.container}>
       <KeyboardAvoidingView
         style={styles.keyboardAvoidingView}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
         <ScrollView
           style={styles.scrollView}
@@ -80,22 +75,22 @@ export default function CreateTranscriptScreen() {
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.header}>
-            <ThemedText type="title">Create Transcript</ThemedText>
+            <ThemedText type="title">{t("transcript.create")}</ThemedText>
             <ThemedText type="default" style={styles.subtitle}>
-              Add a new transcript with title and content
+              {t("transcript.createDescription")}
             </ThemedText>
           </View>
 
           <View style={styles.form}>
             <View style={styles.inputGroup}>
               <ThemedText type="defaultSemiBold" style={styles.label}>
-                Title
+                {t("transcript.title")}
               </ThemedText>
               <TextInput
                 style={styles.textInput}
                 value={title}
                 onChangeText={setTitle}
-                placeholder="Enter transcript title"
+                placeholder={t("transcript.titlePlaceholder")}
                 placeholderTextColor="#999"
                 maxLength={200}
                 autoFocus
@@ -104,12 +99,12 @@ export default function CreateTranscriptScreen() {
 
             <View style={styles.inputGroup}>
               <ThemedText type="defaultSemiBold" style={styles.label}>
-                Content
+                {t("transcript.content")}
               </ThemedText>
               <VoiceInput
                 value={content}
                 onChangeText={setContent}
-                placeholder="Enter transcript content..."
+                placeholder={t("transcript.contentPlaceholder")}
               />
             </View>
           </View>
@@ -120,8 +115,11 @@ export default function CreateTranscriptScreen() {
               onPress={handleCancel}
               disabled={isSubmitting}
             >
-              <ThemedText type="defaultSemiBold" style={styles.cancelButtonText}>
-                Cancel
+              <ThemedText
+                type="defaultSemiBold"
+                style={styles.cancelButtonText}
+              >
+                {t("common.cancel")}
               </ThemedText>
             </TouchableOpacity>
 
@@ -129,7 +127,8 @@ export default function CreateTranscriptScreen() {
               style={[
                 styles.button,
                 styles.submitButton,
-                (!title.trim() || !content.trim() || isSubmitting) && styles.submitButtonDisabled,
+                (!title.trim() || !content.trim() || isSubmitting) &&
+                  styles.submitButtonDisabled,
               ]}
               onPress={handleSubmit}
               disabled={!title.trim() || !content.trim() || isSubmitting}
@@ -138,10 +137,13 @@ export default function CreateTranscriptScreen() {
                 type="defaultSemiBold"
                 style={[
                   styles.submitButtonText,
-                  (!title.trim() || !content.trim() || isSubmitting) && styles.submitButtonTextDisabled,
+                  (!title.trim() || !content.trim() || isSubmitting) &&
+                    styles.submitButtonTextDisabled,
                 ]}
               >
-                {isSubmitting ? 'Creating...' : 'Create Transcript'}
+                {isSubmitting
+                  ? t("transcript.creating")
+                  : t("transcript.create")}
               </ThemedText>
             </TouchableOpacity>
           </View>
@@ -183,23 +185,23 @@ const styles = StyleSheet.create({
   },
   textInput: {
     borderWidth: 1,
-    borderColor: '#ddd',
+    borderColor: "#ddd",
     borderRadius: 8,
     padding: 12,
     fontSize: 16,
-    backgroundColor: 'white',
+    backgroundColor: "white",
   },
   textArea: {
     minHeight: 150,
-    textAlignVertical: 'top',
+    textAlignVertical: "top",
   },
   charCount: {
     fontSize: 12,
     opacity: 0.6,
-    textAlign: 'right',
+    textAlign: "right",
   },
   actions: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: 12,
     marginTop: 32,
   },
@@ -207,27 +209,27 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 14,
     borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   cancelButton: {
-    backgroundColor: 'rgba(0, 0, 0, 0.1)',
+    backgroundColor: "rgba(0, 0, 0, 0.1)",
     borderWidth: 1,
-    borderColor: 'rgba(0, 0, 0, 0.2)',
+    borderColor: "rgba(0, 0, 0, 0.2)",
   },
   cancelButtonText: {
-    color: '#666',
+    color: "#666",
   },
   submitButton: {
-    backgroundColor: '#007AFF',
+    backgroundColor: "#007AFF",
   },
   submitButtonDisabled: {
-    backgroundColor: 'rgba(0, 122, 255, 0.5)',
+    backgroundColor: "rgba(0, 122, 255, 0.5)",
   },
   submitButtonText: {
-    color: 'white',
+    color: "white",
   },
   submitButtonTextDisabled: {
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: "rgba(255, 255, 255, 0.7)",
   },
 });

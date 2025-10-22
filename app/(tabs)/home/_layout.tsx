@@ -1,8 +1,10 @@
-import { ThemedText } from '@/components/themed-text';
-import { router, Stack } from 'expo-router';
-import { TouchableOpacity } from 'react-native';
+import { ThemedText } from "@/components/themed-text";
+import { router, Stack } from "expo-router";
+import { useTranslation } from "react-i18next";
+import { TouchableOpacity } from "react-native";
 
 export default function HomeLayout() {
+  const { t } = useTranslation();
 
   return (
     <Stack>
@@ -10,58 +12,61 @@ export default function HomeLayout() {
         name="index"
         options={{
           headerShown: true,
-          headerTitle: '我的语记',
+          headerTitle: t("home.headerTitle"),
           headerRight: () => (
             <TouchableOpacity
               style={{
-                backgroundColor: '#007AFF',
+                backgroundColor: "#007AFF",
                 paddingHorizontal: 12,
                 paddingVertical: 6,
                 borderRadius: 6,
                 marginRight: 16,
               }}
-              onPress={() => router.push('/home/createTranscript')}
+              onPress={() => router.push("/home/createTranscript")}
             >
               <ThemedText
                 type="defaultSemiBold"
                 style={{
-                  color: 'white',
+                  color: "white",
                   fontSize: 14,
                 }}
               >
-                添加
+                {t("home.addButton")}
               </ThemedText>
             </TouchableOpacity>
           ),
         }}
       />
-      <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
+      <Stack.Screen
+        name="modal"
+        options={{ presentation: "modal", title: "Modal" }}
+      />
       <Stack.Screen
         name="transcript"
         options={{
-          title: '草稿',
-          headerBackTitle: 'Back'
+          title: t("screen.transcript"),
+          headerBackTitle: t("common.back"),
         }}
       />
       <Stack.Screen
         name="note"
         options={{
-          title: '笔记',
-          headerBackTitle: 'Back'
+          title: t("screen.note"),
+          headerBackTitle: t("common.back"),
         }}
       />
       <Stack.Screen
         name="answer"
         options={{
-          title: '回答以扩充笔记',
-          headerBackTitle: 'Back'
+          title: t("screen.answer"),
+          headerBackTitle: t("common.back"),
         }}
       />
       <Stack.Screen
         name="createTranscript"
         options={{
-          title: 'New Transcript',
-          headerBackTitle: 'Back'
+          title: t("screen.createTranscript"),
+          headerBackTitle: t("common.back"),
         }}
       />
     </Stack>

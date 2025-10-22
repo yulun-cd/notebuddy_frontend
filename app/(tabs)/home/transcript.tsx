@@ -1,11 +1,13 @@
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { useTranscripts } from '@/contexts/TranscriptsContext';
-import { transcriptsService } from '@/services/transcriptsService';
-import { Transcript } from '@/types';
-import { usePreventRemove } from '@react-navigation/native';
-import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
-import React, { useEffect, useRef, useState } from 'react';
+import { ThemedText } from "@/components/themed-text";
+import { ThemedView } from "@/components/themed-view";
+import { useTranscripts } from "@/contexts/TranscriptsContext";
+import i18n from "@/services/i18n";
+import { transcriptsService } from "@/services/transcriptsService";
+import { Transcript } from "@/types";
+import { usePreventRemove } from "@react-navigation/native";
+import { useLocalSearchParams, useNavigation, useRouter } from "expo-router";
+import React, { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
   Alert,
@@ -13,10 +15,11 @@ import {
   StyleSheet,
   TextInput,
   TouchableOpacity,
-  View
-} from 'react-native';
+  View,
+} from "react-native";
 
 export default function TranscriptDetailScreen() {
+  const { t } = useTranslation();
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const navigation = useNavigation();
@@ -24,8 +27,8 @@ export default function TranscriptDetailScreen() {
   const [transcript, setTranscript] = useState<Transcript | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [editedTitle, setEditedTitle] = useState('');
-  const [editedContent, setEditedContent] = useState('');
+  const [editedTitle, setEditedTitle] = useState("");
+  const [editedContent, setEditedContent] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [isGeneratingNote, setIsGeneratingNote] = useState(false);
@@ -50,9 +53,10 @@ export default function TranscriptDetailScreen() {
 
       // Note: We no longer track note state since View Note button was removed
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to load transcript';
+      const errorMessage =
+        err instanceof Error ? err.message : t("transcript.loadError");
       setError(errorMessage);
-      console.error('Failed to load transcript:', err);
+      console.error("Failed to load transcript:", err);
     } finally {
       setIsLoading(false);
     }
@@ -81,8 +85,9 @@ export default function TranscriptDetailScreen() {
       setTranscript(updatedTranscript);
       setHasUnsavedChanges(false);
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to update transcript';
-      Alert.alert('Error', errorMessage);
+      const errorMessage =
+        err instanceof Error ? err.message : t("transcript.updateError");
+      Alert.alert(t("common.error"), errorMessage);
     } finally {
       setIsSaving(false);
     }
@@ -94,16 +99,16 @@ export default function TranscriptDetailScreen() {
     // Check if transcript already has a note
     if (transcript.note_id) {
       Alert.alert(
-        'Overwrite Existing Note',
-        'This transcript already has a note. Generating a new note will overwrite the existing one. Do you want to continue?',
+        t("transcript.overwriteNote"),
+        t("transcript.overwriteMessage"),
         [
           {
-            text: 'Cancel',
-            style: 'cancel',
+            text: t("common.cancel"),
+            style: "cancel",
           },
           {
-            text: 'Overwrite',
-            style: 'destructive',
+            text: t("transcript.overwrite"),
+            style: "destructive",
             onPress: async () => {
               await generateNewNote();
             },
@@ -125,13 +130,13 @@ export default function TranscriptDetailScreen() {
       // Auto-navigate to the new note screen
       router.push(`/home/note?id=${result.id}`);
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to generate note';
-      Alert.alert('Error', errorMessage);
+      const errorMessage =
+        err instanceof Error ? err.message : t("transcript.generateNoteError");
+      Alert.alert(t("common.error"), errorMessage);
     } finally {
       setIsGeneratingNote(false);
     }
   };
-
 
   // Handle navigation away with unsaved changes using usePreventRemove hook
   usePreventRemove(hasUnsavedChanges, () => {
@@ -140,43 +145,39 @@ export default function TranscriptDetailScreen() {
     }
 
     // Show confirmation dialog
-    Alert.alert(
-      'Unsaved Changes',
-      'You have unsaved changes. Do you want to discard them?',
-      [
-        {
-          text: "Don't leave",
-          style: 'cancel',
-          onPress: () => {
-            // Navigation is automatically prevented by usePreventRemove
-            // User stays on the transcript screen
-          },
+    Alert.alert(t("alert.unsavedChanges"), t("alert.discardMessage"), [
+      {
+        text: t("common.dontLeave"),
+        style: "cancel",
+        onPress: () => {
+          // Navigation is automatically prevented by usePreventRemove
+          // User stays on the transcript screen
         },
-        {
-          text: 'Discard',
-          style: 'destructive',
-          onPress: () => {
-            // Discard changes and navigate back immediately
-            setHasUnsavedChanges(false);
-            // Use setTimeout to ensure state update happens before navigation
-            setTimeout(() => {
-              router.back();
-            }, 0);
-          },
+      },
+      {
+        text: t("common.discard"),
+        style: "destructive",
+        onPress: () => {
+          // Discard changes and navigate back immediately
+          setHasUnsavedChanges(false);
+          // Use setTimeout to ensure state update happens before navigation
+          setTimeout(() => {
+            router.back();
+          }, 0);
         },
-      ]
-    );
+      },
+    ]);
   });
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
+    return date.toLocaleDateString(i18n.language, {
+      weekday: "long",
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
     });
   };
 
@@ -186,7 +187,7 @@ export default function TranscriptDetailScreen() {
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" />
           <ThemedText type="default" style={styles.loadingText}>
-            Loading transcript...
+            {t("common.loading")}
           </ThemedText>
         </View>
       </ThemedView>
@@ -198,13 +199,10 @@ export default function TranscriptDetailScreen() {
       <ThemedView style={styles.container}>
         <View style={styles.errorContainer}>
           <ThemedText type="title" style={styles.errorTitle}>
-            {error || 'Transcript not found'}
+            {error || t("transcript.notFound")}
           </ThemedText>
           <ThemedText type="default" style={styles.errorText}>
-            {error
-              ? 'There was a problem loading this transcript.'
-              : 'The transcript you are looking for does not exist.'
-            }
+            {error ? t("transcript.loadError") : t("transcript.notExist")}
           </ThemedText>
         </View>
       </ThemedView>
@@ -224,28 +222,28 @@ export default function TranscriptDetailScreen() {
             style={styles.titleInput}
             value={editedTitle}
             onChangeText={handleTitleChange}
-            placeholder="Enter transcript title"
+            placeholder={t("transcript.titlePlaceholder")}
             multiline
             editable={!isSaving && !isGeneratingNote}
           />
           <ThemedText type="default" style={styles.date}>
-            Created {formatDate(transcript.created_at)}
-            {'\n'}
-            {hasUnsavedChanges && ' • Unsaved changes'}
-            {isSaving && ' • Saving...'}
+            {t("transcript.created")} {formatDate(transcript.created_at)}
+            {"\n"}
+            {hasUnsavedChanges && ` • ${t("transcript.unsavedChanges")}`}
+            {isSaving && ` • ${t("transcript.saving")}`}
           </ThemedText>
         </View>
 
         <View style={styles.contentSection}>
           <ThemedText type="subtitle" style={styles.sectionTitle}>
-            Content
+            {t("transcript.content")}
           </ThemedText>
           <TextInput
             ref={contentInputRef}
             style={styles.contentInput}
             value={editedContent}
             onChangeText={handleContentChange}
-            placeholder="Enter transcript content"
+            placeholder={t("transcript.contentPlaceholder")}
             multiline
             textAlignVertical="top"
             editable={!isSaving && !isGeneratingNote}
@@ -254,28 +252,28 @@ export default function TranscriptDetailScreen() {
       </ScrollView>
 
       <View style={styles.bottomActions}>
-          <TouchableOpacity
-            style={[
-              styles.actionButton,
-              styles.saveButton,
-              (isSaving||!hasUnsavedChanges) && styles.disabledButton
-            ]}
-            onPress={saveChanges}
-            disabled={isSaving||!hasUnsavedChanges}
-          >
-            {isSaving ? (
-              <ActivityIndicator size="small" color="white" />
-            ) : (
-              <ThemedText type="defaultSemiBold" style={styles.actionButtonText}>
-                Save Changes
-              </ThemedText>
-            )}
-          </TouchableOpacity>
+        <TouchableOpacity
+          style={[
+            styles.actionButton,
+            styles.saveButton,
+            (isSaving || !hasUnsavedChanges) && styles.disabledButton,
+          ]}
+          onPress={saveChanges}
+          disabled={isSaving || !hasUnsavedChanges}
+        >
+          {isSaving ? (
+            <ActivityIndicator size="small" color="white" />
+          ) : (
+            <ThemedText type="defaultSemiBold" style={styles.actionButtonText}>
+              {t("transcript.saveChanges")}
+            </ThemedText>
+          )}
+        </TouchableOpacity>
         <TouchableOpacity
           style={[
             styles.actionButton,
             styles.generateNoteButton,
-            (isSaving || isGeneratingNote) && styles.disabledButton
+            (isSaving || isGeneratingNote) && styles.disabledButton,
           ]}
           onPress={handleGenerateNote}
           disabled={isSaving || isGeneratingNote}
@@ -284,7 +282,7 @@ export default function TranscriptDetailScreen() {
             <ActivityIndicator size="small" color="white" />
           ) : (
             <ThemedText type="defaultSemiBold" style={styles.actionButtonText}>
-              Generate Note
+              {t("transcript.generateNote")}
             </ThemedText>
           )}
         </TouchableOpacity>
@@ -306,8 +304,8 @@ const styles = StyleSheet.create({
   },
   loadingContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     gap: 16,
   },
   loadingText: {
@@ -315,16 +313,16 @@ const styles = StyleSheet.create({
   },
   errorContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     paddingHorizontal: 32,
   },
   errorTitle: {
     marginBottom: 8,
-    textAlign: 'center',
+    textAlign: "center",
   },
   errorText: {
-    textAlign: 'center',
+    textAlign: "center",
     opacity: 0.7,
   },
   header: {
@@ -334,10 +332,10 @@ const styles = StyleSheet.create({
     fontSize: 24,
     marginBottom: 8,
     borderWidth: 1,
-    borderColor: '#ccc',
+    borderColor: "#ccc",
     borderRadius: 8,
     padding: 12,
-    backgroundColor: 'white',
+    backgroundColor: "white",
   },
   date: {
     fontSize: 14,
@@ -355,48 +353,48 @@ const styles = StyleSheet.create({
     fontSize: 16,
     lineHeight: 24,
     borderWidth: 1,
-    borderColor: '#ccc',
+    borderColor: "#ccc",
     borderRadius: 8,
     padding: 12,
-    backgroundColor: 'white',
+    backgroundColor: "white",
     flex: 1,
-    textAlignVertical: 'top',
+    textAlignVertical: "top",
   },
   actions: {
     marginTop: 24,
   },
   bottomActions: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     padding: 16,
     paddingBottom: 32,
-    backgroundColor: 'white',
+    backgroundColor: "white",
     borderTopWidth: 1,
-    borderTopColor: '#e0e0e0',
+    borderTopColor: "#e0e0e0",
     gap: 12,
   },
   actionButton: {
     paddingVertical: 12,
     paddingHorizontal: 0,
     borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     flex: 1,
     minHeight: 44,
   },
   actionButtonText: {
-    color: 'white',
+    color: "white",
     fontSize: 16,
   },
   saveButton: {
-    backgroundColor: '#34C759',
+    backgroundColor: "#34C759",
   },
   generateNoteButton: {
-    backgroundColor: '#5856D6',
+    backgroundColor: "#5856D6",
   },
   disabledButton: {
-    backgroundColor: '#C7C7CC',
+    backgroundColor: "#C7C7CC",
     opacity: 0.6,
   },
 });

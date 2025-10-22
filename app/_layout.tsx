@@ -4,9 +4,12 @@ import "react-native-reanimated";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
+import { I18nProvider } from "@/contexts/I18nContext";
 import { NotesProvider } from "@/contexts/NotesContext";
 import { TranscriptsProvider } from "@/contexts/TranscriptsContext";
 import { UserProfileProvider } from "@/contexts/UserProfileContext";
+import "@/services/i18n"; // Import i18n configuration
+import { useTranslation } from "react-i18next";
 import { ActivityIndicator } from "react-native";
 
 export const unstable_settings = {
@@ -14,13 +17,15 @@ export const unstable_settings = {
 };
 
 export function LoadingScreen() {
+  const { t } = useTranslation();
+
   return (
     <ThemedView
       style={{ flex: 1, justifyContent: "center", alignItems: "center" }}
     >
       <ActivityIndicator size="large" />
       <ThemedText type="default" style={{ marginTop: 16 }}>
-        正在加载...
+        {t("common.loading")}
       </ThemedText>
     </ThemedView>
   );
@@ -49,11 +54,13 @@ export default function RootLayout() {
   return (
     <AuthProvider>
       <UserProfileProvider>
-        <TranscriptsProvider>
-          <NotesProvider>
-            <AppContent />
-          </NotesProvider>
-        </TranscriptsProvider>
+        <I18nProvider>
+          <TranscriptsProvider>
+            <NotesProvider>
+              <AppContent />
+            </NotesProvider>
+          </TranscriptsProvider>
+        </I18nProvider>
       </UserProfileProvider>
     </AuthProvider>
   );

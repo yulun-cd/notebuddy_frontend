@@ -1,29 +1,31 @@
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { VoiceInput } from '@/components/VoiceInput';
-import { notesService } from '@/services/notesService';
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useState } from 'react';
+import { ThemedText } from "@/components/themed-text";
+import { ThemedView } from "@/components/themed-view";
+import { VoiceInput } from "@/components/VoiceInput";
+import { notesService } from "@/services/notesService";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import React, { useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
   Alert,
   ScrollView,
   StyleSheet,
   TouchableOpacity,
-  View
-} from 'react-native';
+  View,
+} from "react-native";
 
 export default function AnswerScreen() {
+  const { t } = useTranslation();
   const { note_id } = useLocalSearchParams<{ note_id: string }>();
   const { question } = useLocalSearchParams<{ question: string }>();
   const router = useRouter();
 
-  const [answer, setAnswer] = useState('');
+  const [answer, setAnswer] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async () => {
     if (!note_id || !question || !answer.trim()) {
-      Alert.alert('Error', 'Please provide an answer before submitting.');
+      Alert.alert(t("common.error"), t("answer.provideAnswer"));
       return;
     }
 
@@ -31,22 +33,19 @@ export default function AnswerScreen() {
       setIsSubmitting(true);
       await notesService.updateWithAnswer(note_id, question, answer.trim());
 
-      Alert.alert(
-        'Success',
-        'Your answer has been submitted successfully!',
-        [
-          {
-            text: 'OK',
-            onPress: () => {
-              // Navigate back to the note screen
-              router.back();
-            }
-          }
-        ]
-      );
+      Alert.alert(t("common.success"), t("answer.submitSuccess"), [
+        {
+          text: t("common.ok"),
+          onPress: () => {
+            // Navigate back to the note screen
+            router.back();
+          },
+        },
+      ]);
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to submit answer';
-      Alert.alert('Error', errorMessage);
+      const errorMessage =
+        err instanceof Error ? err.message : t("answer.submitError");
+      Alert.alert(t("common.error"), errorMessage);
     } finally {
       setIsSubmitting(false);
     }
@@ -61,18 +60,18 @@ export default function AnswerScreen() {
       >
         <View style={styles.header}>
           <ThemedText type="title" style={styles.questionTitle}>
-            {question || 'Question'}
+            {question || t("answer.question")}
           </ThemedText>
         </View>
 
         <View style={styles.answerSection}>
           <ThemedText type="subtitle" style={styles.sectionTitle}>
-            Your Answer
+            {t("answer.yourAnswer")}
           </ThemedText>
           <VoiceInput
             value={answer}
             onChangeText={setAnswer}
-            placeholder="Enter your answer here..."
+            placeholder={t("answer.placeholder")}
           />
         </View>
       </ScrollView>
@@ -81,7 +80,7 @@ export default function AnswerScreen() {
         <TouchableOpacity
           style={[
             styles.submitButton,
-            (!answer.trim() || isSubmitting) && styles.disabledButton
+            (!answer.trim() || isSubmitting) && styles.disabledButton,
           ]}
           onPress={handleSubmit}
           disabled={!answer.trim() || isSubmitting}
@@ -90,7 +89,7 @@ export default function AnswerScreen() {
             <ActivityIndicator size="small" color="white" />
           ) : (
             <ThemedText type="defaultSemiBold" style={styles.submitButtonText}>
-              Submit Answer
+              {t("answer.submit")}
             </ThemedText>
           )}
         </TouchableOpacity>
@@ -116,7 +115,7 @@ const styles = StyleSheet.create({
   questionTitle: {
     fontSize: 24,
     lineHeight: 32,
-    textAlign: 'center',
+    textAlign: "center",
   },
   answerSection: {
     marginBottom: 24,
@@ -130,33 +129,33 @@ const styles = StyleSheet.create({
     fontSize: 16,
     lineHeight: 24,
     borderWidth: 1,
-    borderColor: '#ccc',
+    borderColor: "#ccc",
     borderRadius: 8,
     padding: 12,
-    backgroundColor: 'white',
+    backgroundColor: "white",
     minHeight: 200,
-    textAlignVertical: 'top',
+    textAlignVertical: "top",
   },
   bottomActions: {
     padding: 16,
     paddingBottom: 32,
-    backgroundColor: 'white',
+    backgroundColor: "white",
     borderTopWidth: 1,
-    borderTopColor: '#e0e0e0',
+    borderTopColor: "#e0e0e0",
   },
   submitButton: {
-    backgroundColor: '#34C759',
+    backgroundColor: "#34C759",
     paddingVertical: 16,
     borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   submitButtonText: {
-    color: 'white',
+    color: "white",
     fontSize: 16,
   },
   disabledButton: {
-    backgroundColor: '#C7C7CC',
+    backgroundColor: "#C7C7CC",
     opacity: 0.6,
   },
 });

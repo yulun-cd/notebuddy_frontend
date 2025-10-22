@@ -7,6 +7,7 @@ import { AntDesign } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
 import { useRouter } from "expo-router";
 import React, { useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
   Alert,
@@ -20,6 +21,7 @@ import {
 import { Menu, MenuItem } from "react-native-material-menu";
 
 export default function HomeListScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
   const {
     transcripts,
@@ -65,18 +67,22 @@ export default function HomeListScreen() {
   };
 
   const handleDeleteTranscript = (transcript: Transcript) => {
-    Alert.alert("删除笔记", `确定要删除"${transcript.title}"吗？`, [
-      { text: "取消", style: "cancel" },
-      {
-        text: "删除",
-        style: "destructive",
-        onPress: async () => {
-          await deleteTranscript(transcript.id);
-          // Trigger refresh after deletion to update the list
-          refreshTranscripts(false);
+    Alert.alert(
+      t("alert.confirmDelete"),
+      `${t("alert.deleteMessage")} "${transcript.title}"?`,
+      [
+        { text: t("common.cancel"), style: "cancel" },
+        {
+          text: t("common.delete"),
+          style: "destructive",
+          onPress: async () => {
+            await deleteTranscript(transcript.id);
+            // Trigger refresh after deletion to update the list
+            refreshTranscripts(false);
+          },
         },
-      },
-    ]);
+      ]
+    );
   };
 
   const getMostRecentTimestamp = (transcript: Transcript) => {
@@ -186,16 +192,22 @@ export default function HomeListScreen() {
     // Convert to SectionList format, filtering empty sections
     const sections = [];
     if (groups.today.length > 0) {
-      sections.push({ title: "今天", data: groups.today });
+      sections.push({ title: t("home.sections.today"), data: groups.today });
     }
     if (groups.thisWeek.length > 0) {
-      sections.push({ title: "本周", data: groups.thisWeek });
+      sections.push({
+        title: t("home.sections.thisWeek"),
+        data: groups.thisWeek,
+      });
     }
     if (groups.thisMonth.length > 0) {
-      sections.push({ title: "本月", data: groups.thisMonth });
+      sections.push({
+        title: t("home.sections.thisMonth"),
+        data: groups.thisMonth,
+      });
     }
     if (groups.older.length > 0) {
-      sections.push({ title: "更早", data: groups.older });
+      sections.push({ title: t("home.sections.older"), data: groups.older });
     }
 
     // Reverse sections for ascending order (oldest first)
@@ -204,7 +216,7 @@ export default function HomeListScreen() {
     }
 
     return sections;
-  }, [filteredTranscripts, orderBy]);
+  }, [filteredTranscripts, orderBy, t]);
 
   const renderTranscriptItem = ({ item }: { item: Transcript }) => {
     const displayTitle = item.note?.title || item.title;
@@ -232,8 +244,9 @@ export default function HomeListScreen() {
             {displayTitle}
           </ThemedText>
           <ThemedText type="default" style={styles.transcriptDate}>
-            上次编辑 {formatDateTime(mostRecentTimestamp.toISOString())}
-            {!hasNote && "\t - 草稿"}
+            {t("home.lastEdited")}{" "}
+            {formatDateTime(mostRecentTimestamp.toISOString())}
+            {!hasNote && `\t - ${t("home.draft")}`}
           </ThemedText>
           <ThemedText
             type="default"
@@ -266,12 +279,10 @@ export default function HomeListScreen() {
   const renderEmptyState = () => (
     <View style={styles.emptyState}>
       <ThemedText type="title" style={styles.emptyStateTitle}>
-        {isAuthenticated ? "暂无笔记" : "欢迎使用 NoteBuddy"}
+        {isAuthenticated ? t("home.noTranscripts") : t("home.welcome")}
       </ThemedText>
       <ThemedText type="default" style={styles.emptyStateText}>
-        {isAuthenticated
-          ? "创建您的第一个笔记开始使用吧！"
-          : "请登录以查看和管理您的笔记"}
+        {isAuthenticated ? t("home.createFirst") : t("error.unauthorized")}
       </ThemedText>
       {!isAuthenticated && (
         <TouchableOpacity
@@ -279,7 +290,7 @@ export default function HomeListScreen() {
           onPress={() => router.push("/login")}
         >
           <ThemedText type="defaultSemiBold" style={styles.loginButtonText}>
-            登录
+            {t("auth.login")}
           </ThemedText>
         </TouchableOpacity>
       )}
@@ -291,7 +302,7 @@ export default function HomeListScreen() {
       <ThemedView style={styles.container}>
         <View style={styles.errorContainer}>
           <ThemedText type="title" style={styles.errorTitle}>
-            出错了
+            {t("common.error")}
           </ThemedText>
           <ThemedText type="default" style={styles.errorText}>
             {error}
@@ -301,7 +312,7 @@ export default function HomeListScreen() {
             onPress={() => refreshTranscripts()}
           >
             <ThemedText type="defaultSemiBold" style={styles.retryButtonText}>
-              重试
+              {t("common.retry")}
             </ThemedText>
           </TouchableOpacity>
         </View>
@@ -337,7 +348,7 @@ export default function HomeListScreen() {
             }}
           >
             <View style={styles.menuItemContent}>
-              <ThemedText type="default">降序 (最新在前)</ThemedText>
+              <ThemedText type="default">{t("home.order.desc")}</ThemedText>
               {orderBy === "desc" && (
                 <AntDesign
                   name="check"
@@ -355,7 +366,7 @@ export default function HomeListScreen() {
             }}
           >
             <View style={styles.menuItemContent}>
-              <ThemedText type="default">升序 (最旧在前)</ThemedText>
+              <ThemedText type="default">{t("home.order.asc")}</ThemedText>
               {orderBy === "asc" && (
                 <AntDesign
                   name="check"
@@ -384,7 +395,7 @@ export default function HomeListScreen() {
             }}
           >
             <View style={styles.menuItemContent}>
-              <ThemedText type="default">全部</ThemedText>
+              <ThemedText type="default">{t("home.filter.all")}</ThemedText>
               {noteStatusFilter === "all" && (
                 <AntDesign
                   name="check"
@@ -402,7 +413,7 @@ export default function HomeListScreen() {
             }}
           >
             <View style={styles.menuItemContent}>
-              <ThemedText type="default">有笔记</ThemedText>
+              <ThemedText type="default">{t("home.filter.hasNote")}</ThemedText>
               {noteStatusFilter === "hasNote" && (
                 <AntDesign
                   name="check"
@@ -420,7 +431,7 @@ export default function HomeListScreen() {
             }}
           >
             <View style={styles.menuItemContent}>
-              <ThemedText type="default">无笔记</ThemedText>
+              <ThemedText type="default">{t("home.filter.noNote")}</ThemedText>
               {noteStatusFilter === "noNote" && (
                 <AntDesign
                   name="check"
@@ -442,14 +453,14 @@ export default function HomeListScreen() {
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" />
           <ThemedText type="default" style={styles.loadingText}>
-            正在加载笔记...
+            {t("common.loading")}
           </ThemedText>
         </View>
       ) : (
         <>
           <View style={styles.headerRow}>
             <TextInput
-              placeholder="搜索笔记"
+              placeholder={t("home.search")}
               onChangeText={setSearchQuery}
               value={searchQuery}
               style={styles.searchBar}
@@ -559,23 +570,22 @@ const styles = StyleSheet.create({
   },
   transcriptPreview: {
     fontSize: 14,
-    lineHeight: 20,
     opacity: 0.8,
   },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    gap: 16,
+  rightColumn: {
+    alignItems: "flex-end",
+    justifyContent: "space-between",
+    height: "100%",
   },
-  loadingText: {
-    opacity: 0.7,
+  deleteIconButton: {
+    padding: 4,
   },
   emptyState: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    paddingVertical: 80,
+    paddingHorizontal: 32,
+    paddingTop: 100,
   },
   emptyStateTitle: {
     marginBottom: 8,
@@ -583,8 +593,17 @@ const styles = StyleSheet.create({
   },
   emptyStateText: {
     textAlign: "center",
+    marginBottom: 24,
     opacity: 0.7,
-    paddingHorizontal: 32,
+  },
+  loginButton: {
+    backgroundColor: "#007AFF",
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 8,
+  },
+  loginButtonText: {
+    color: "white",
   },
   errorContainer: {
     flex: 1,
@@ -610,119 +629,63 @@ const styles = StyleSheet.create({
   retryButtonText: {
     color: "white",
   },
-  loginButton: {
-    backgroundColor: "#007AFF",
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 8,
-    marginTop: 16,
-  },
-  loginButtonText: {
-    color: "white",
-  },
-  titleRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-    marginBottom: 4,
-  },
-  noteStatus: {
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 12,
-    marginLeft: 8,
-  },
-  hasNote: {
-    backgroundColor: "rgba(52, 199, 89, 0.2)",
-    borderColor: "rgba(52, 199, 89, 0.5)",
-    borderWidth: 1,
-  },
-  noNote: {
-    backgroundColor: "rgba(142, 142, 147, 0.2)",
-    borderColor: "rgba(142, 142, 147, 0.5)",
-    borderWidth: 1,
-  },
-  noteStatusText: {
-    fontSize: 12,
-    opacity: 0.8,
-  },
-  rightColumn: {
-    alignItems: "flex-end",
-    gap: 8,
-  },
-  deleteIconButton: {
-    padding: 4,
-    justifyContent: "center",
-    alignItems: "center",
-    height: 30,
-  },
-  noNoteCircle: {
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-    backgroundColor: "rgba(142, 142, 147, 0.5)",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  noNoteCircleText: {
-    fontSize: 8,
-    color: "white",
-    lineHeight: 16,
-  },
   functionBar: {
-    paddingVertical: 12,
-    paddingHorizontal: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
   },
   functionBarContent: {
     flexDirection: "row",
-    justifyContent: "flex-end",
     alignItems: "center",
+    gap: 8,
   },
   orderButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "white",
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 8,
-    marginRight: 8,
+    padding: 8,
+    borderRadius: 6,
+    backgroundColor: "rgba(0, 122, 255, 0.1)",
   },
   filterButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "white",
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 8,
-  },
-  filterButtonText: {
-    color: "#007AFF",
-    fontSize: 14,
-    marginRight: 6,
-  },
-  filterIcon: {
-    marginLeft: 2,
+    padding: 8,
+    borderRadius: 6,
+    backgroundColor: "rgba(0, 122, 255, 0.1)",
   },
   menuStyle: {
-    marginTop: 40, // Position below the filter button
+    marginTop: 40,
+    borderRadius: 8,
   },
   menuItemContent: {
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
+    justifyContent: "space-between",
     width: "100%",
+    paddingHorizontal: 8,
   },
   checkIcon: {
     marginLeft: 8,
   },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  loadingText: {
+    marginTop: 16,
+    opacity: 0.7,
+  },
   headerRow: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 8,
     gap: 12,
+    marginBottom: 16,
   },
   searchBar: {
     flex: 1,
-    backgroundColor: "transparent",
+    backgroundColor: "white",
+    borderWidth: 1,
+    borderColor: "#ddd",
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    fontSize: 16,
   },
 });
