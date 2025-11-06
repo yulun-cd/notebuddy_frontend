@@ -2,8 +2,7 @@ import { ApiResponse, AuthTokens } from "@/types";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios, { AxiosInstance, AxiosResponse } from "axios";
 
-const API_BASE_URL = `${process.env.BASE_URL}`;
-console.log("API_BASE_URL:", API_BASE_URL);
+const API_BASE_URL = "http://127.0.0.1:8000";
 
 class ApiService {
   private client: AxiosInstance;
@@ -61,6 +60,8 @@ class ApiService {
       (response) => response,
       async (error) => {
         const originalRequest = error.config;
+        console.log("inside interceptor");
+        console.log("originalRequest:", originalRequest);
 
         // Handle both 401 (Unauthorized) and 403 (Forbidden) errors for token refresh
         if (
@@ -71,6 +72,7 @@ class ApiService {
           originalRequest._retry = true;
 
           try {
+            console.log("Attempting to refresh token...");
             const response = await axios.post(`${API_BASE_URL}/auth/refresh`, {
               refresh_token: this.tokens.refresh_token,
             });
@@ -85,6 +87,7 @@ class ApiService {
               this.notifyAuthStatusChange(false);
               return Promise.reject(error);
             }
+            console.log("Token refreshed successfully:");
             const newTokens = response.data;
             await this.setTokens(newTokens);
 
