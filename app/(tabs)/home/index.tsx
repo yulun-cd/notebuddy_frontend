@@ -11,6 +11,7 @@ import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
   Alert,
+  Animated,
   RefreshControl,
   SectionList,
   StyleSheet,
@@ -38,6 +39,13 @@ export default function HomeListScreen() {
   const [noteStatusFilter, setNoteStatusFilter] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [orderBy, setOrderBy] = useState<"desc" | "asc">("desc");
+
+  // Scroll animation state
+  const scrollY = useRef(new Animated.Value(0)).current;
+  const lastScrollY = useRef(0);
+  const headerHeight = useRef(new Animated.Value(56)).current; // Approximate header height
+  const isHeaderVisible = useRef(true);
+  const scrollThreshold = useRef(10); // Minimum scroll delta to trigger show/hide
 
   const hideMenu = () => setMenuVisible(false);
   const showMenu = () => setMenuVisible(true);
@@ -268,6 +276,50 @@ export default function HomeListScreen() {
     );
   };
 
+  const handleScroll = Animated.event(
+    [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+    {
+      useNativeDriver: false,
+      listener: (event: any) => {
+        const currentScrollY = event.nativeEvent.contentOffset.y;
+        const scrollDelta = Math.abs(currentScrollY - lastScrollY.current);
+        const scrollDirection =
+          currentScrollY > lastScrollY.current ? "down" : "up";
+
+        // Only trigger animation if scroll direction changes and we're not at the very top
+        // AND the scroll delta is significant enough to be an intentional gesture
+        if (
+          scrollDirection === "down" &&
+          isHeaderVisible.current &&
+          currentScrollY > 50 &&
+          scrollDelta > scrollThreshold.current
+        ) {
+          // Hide header
+          isHeaderVisible.current = false;
+          Animated.timing(headerHeight, {
+            toValue: 0,
+            duration: 300,
+            useNativeDriver: false, // Height animation doesn't support native driver
+          }).start();
+        } else if (
+          scrollDirection === "up" &&
+          !isHeaderVisible.current &&
+          scrollDelta > scrollThreshold.current
+        ) {
+          // Show header - only on explicit upward scroll with significant delta
+          isHeaderVisible.current = true;
+          Animated.timing(headerHeight, {
+            toValue: 56,
+            duration: 300,
+            useNativeDriver: false, // Height animation doesn't support native driver
+          }).start();
+        }
+
+        lastScrollY.current = currentScrollY;
+      },
+    }
+  );
+
   const renderSectionHeader = ({ section }: { section: { title: string } }) => (
     <View style={styles.sectionHeader}>
       <ThemedText type="subtitle" style={styles.sectionTitle}>
@@ -447,6 +499,30 @@ export default function HomeListScreen() {
     </View>
   );
 
+  // Animated header component
+  const AnimatedHeader = () => (
+    <Animated.View
+      style={[
+        styles.headerRow,
+        {
+          height: headerHeight,
+          overflow: "hidden",
+        },
+      ]}
+    >
+      <TextInput
+        placeholder={t("home.search")}
+        onChangeText={setSearchQuery}
+        value={searchQuery}
+        style={styles.searchBar}
+        autoCapitalize="none"
+        autoCorrect={false}
+        clearButtonMode="while-editing"
+      />
+      <FunctionBar />
+    </Animated.View>
+  );
+
   return (
     <ThemedView style={styles.container}>
       {isLoading && !refreshing ? (
@@ -458,18 +534,7 @@ export default function HomeListScreen() {
         </View>
       ) : (
         <>
-          <View style={styles.headerRow}>
-            <TextInput
-              placeholder={t("home.search")}
-              onChangeText={setSearchQuery}
-              value={searchQuery}
-              style={styles.searchBar}
-              autoCapitalize="none"
-              autoCorrect={false}
-              clearButtonMode="while-editing"
-            />
-            <FunctionBar />
-          </View>
+          <AnimatedHeader />
           <SectionList
             sections={groupedTranscripts}
             renderSectionHeader={renderSectionHeader}
@@ -486,6 +551,8 @@ export default function HomeListScreen() {
             ListEmptyComponent={renderEmptyState}
             showsVerticalScrollIndicator={false}
             stickySectionHeadersEnabled={true}
+            onScroll={handleScroll}
+            scrollEventThrottle={16}
           />
         </>
       )}

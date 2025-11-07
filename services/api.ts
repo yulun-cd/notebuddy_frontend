@@ -60,8 +60,6 @@ class ApiService {
       (response) => response,
       async (error) => {
         const originalRequest = error.config;
-        console.log("inside interceptor");
-        console.log("originalRequest:", originalRequest);
 
         // Handle both 401 (Unauthorized) and 403 (Forbidden) errors for token refresh
         if (
@@ -72,7 +70,6 @@ class ApiService {
           originalRequest._retry = true;
 
           try {
-            console.log("Attempting to refresh token...");
             const response = await axios.post(`${API_BASE_URL}/auth/refresh`, {
               refresh_token: this.tokens.refresh_token,
             });
@@ -87,7 +84,6 @@ class ApiService {
               this.notifyAuthStatusChange(false);
               return Promise.reject(error);
             }
-            console.log("Token refreshed successfully:");
             const newTokens = response.data;
             await this.setTokens(newTokens);
 
