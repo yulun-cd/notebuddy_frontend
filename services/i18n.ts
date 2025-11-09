@@ -65,7 +65,6 @@ const resources = {
 
       // Navigation
       "nav.home": "Home",
-      "nav.explore": "Explore",
       "nav.profile": "Profile",
       "home.headerTitle": "My Transcripts",
       "home.addButton": "Add",
@@ -249,7 +248,6 @@ const resources = {
 
       // Navigation
       "nav.home": "首页",
-      "nav.explore": "探索",
       "nav.profile": "个人资料",
       "home.headerTitle": "我的语记",
       "home.addButton": "添加",
